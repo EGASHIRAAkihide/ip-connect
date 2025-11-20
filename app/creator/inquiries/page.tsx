@@ -1,5 +1,6 @@
 'use client';
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -191,22 +192,30 @@ export default function CreatorInquiries() {
                   {inquiry.message}
                 </p>
               )}
-              {inquiry.status === "pending" && (
-                <div className="mt-4 flex gap-3">
-                  <button
-                    onClick={() => updateStatus(inquiry.id, "approved")}
-                    className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => updateStatus(inquiry.id, "rejected")}
-                    className="rounded-full border border-rose-500 px-4 py-2 text-sm text-rose-200"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  href={`/creator/inquiries/${inquiry.id}`}
+                  className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+                >
+                  View details
+                </Link>
+                {inquiry.status === "pending" && (
+                  <>
+                    <button
+                      onClick={() => updateStatus(inquiry.id, "approved")}
+                      className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => updateStatus(inquiry.id, "rejected")}
+                      className="rounded-full border border-rose-500 px-4 py-2 text-sm text-rose-200"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
             </article>
           ))}
         </div>

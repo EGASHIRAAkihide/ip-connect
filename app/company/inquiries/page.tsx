@@ -196,10 +196,16 @@ export default function CompanyInquiriesPage() {
                     {inquiry.message}
                   </p>
                 )}
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/company/inquiries/${inquiry.id}`}
+                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+                  >
+                    View details
+                  </Link>
                   <Link
                     href={`/ip/${inquiry.ip_id}`}
-                    className="inline-flex rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
                   >
                     View asset
                   </Link>

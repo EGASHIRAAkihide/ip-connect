@@ -103,9 +103,12 @@ export default function IPDetailPage() {
           </p>
           <h1 className="text-3xl font-semibold text-white">{asset.title}</h1>
           {creator && (
-            <p className="text-sm text-slate-400">
-              Creator: {creator.email} ({creator.role})
-            </p>
+            <Link
+              href={`/users/${creator.id}`}
+              className="text-sm text-emerald-300 underline"
+            >
+              Creator: {creator.email}
+            </Link>
           )}
         </div>
         <Link

@@ -1,36 +1,195 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IP Connect – PoC Platform for Digital IP Licensing
 
-## Getting Started
+A Proof-of-Concept platform that enables creators (voice actors, illustrators, choreographers) to safely and transparently license their digital IP to companies.
+Built with Next.js + Supabase, this PoC validates the end-to-end licensing workflow:
+	•	Creator onboarding
+	•	IP registration & asset upload
+	•	Public catalog & asset detail page
+	•	Company licensing inquiries
+	•	Creator-side approval flow
 
-First, run the development server:
+⸻
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
+🚀 Tech Stack
+
+Component	Technology
+Frontend	Next.js (App Router), React 18, TypeScript
+Backend	Supabase (Postgres + Auth + Storage)
+Storage	Supabase Storage (ip-assets bucket)
+Styling	Tailwind CSS
+Auth	Supabase Email Auth (Magic Link + Role-based access)
+
+
+⸻
+
+🧪 PoC Scope
+
+This PoC tests only desirability + basic workflow.
+No payment, no contract automation, no multi-language support.
+
+✔ Creator IP registration
+✔ File upload to Supabase Storage
+✔ IP detail preview (image / audio / video)
+✔ Company inquiry submission
+✔ Creator inbox & approve/reject
+✔ Company dashboard to track inquiries
+
+❌ No automated contracts
+❌ No payments
+❌ No price negotiation features
+❌ No multi-user organization features
+
+⸻
+
+📦 Project Structure
+
+ip-connect/
+├─ app/
+│  ├─ ip/
+│  │  ├─ [id]/page.tsx           # Asset detail page
+│  │  ├─ [id]/inquire/page.tsx   # Inquiry form for companies
+│  │  └─ page.tsx                # Public IP catalog
+│  ├─ creator/ip/new/page.tsx    # Creator: new IP asset
+│  ├─ creator/inquiries/page.tsx # Creator: inquiry inbox
+│  ├─ company/inquiries/page.tsx # Company: inquiry dashboard (new)
+│  └─ auth/...                   # Login/Register flow
+├─ lib/
+│  ├─ supabaseClient.ts          # Supabase client
+│  ├─ types.ts                   # Shared TypeScript types
+│  └─ utils.ts                   # Helper utils
+├─ supabase/
+│  ├─ migrations/0001_init.sql   # Tables: users, ip_assets, inquiries
+│  └─ seed/...
+└─ README.md                     # ← You are here
+
+
+⸻
+
+🛠 Supabase Setup Guide
+
+1. Create a Supabase Project
+	1.	Go to https://supabase.com/dashboard
+	2.	Create a new project
+	3.	Get the following values:
+	•	NEXT_PUBLIC_SUPABASE_URL
+	•	NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+2. Create Storage Bucket
+
+Bucket name: ip-assets
+Public: enabled
+
+This is safe for PoC, but should be private in production.
+
+3. Apply Database Schema
+
+Run the SQL inside:
+
+supabase/migrations/0001_init.sql
+
+Tables:
+	•	users
+	•	ip_assets
+	•	inquiries
+
+4. Configure RLS Policies
+
+Minimum safe configuration:
+
+-- Allow creators to insert assets
+create policy "creators insert ip_assets"
+on ip_assets for insert
+to authenticated
+with check (creator_id = auth.uid());
+
+-- Companies can insert inquiries
+create policy "companies insert inquiries"
+on inquiries for insert
+to authenticated
+with check (company_id = auth.uid());
+
+-- Select rules
+create policy "all select ip_assets"
+on ip_assets for select
+to authenticated
+using (true);
+
+create policy "creator select inquiries"
+on inquiries for select
+to authenticated
+using (creator_id = auth.uid() OR company_id = auth.uid());
+
+
+⸻
+
+▶️ Local Development
+
+1. Install dependencies
+
+pnpm install
+
+2. Add environment variables
+
+Create .env.local:
+
+NEXT_PUBLIC_SUPABASE_URL=xxxx
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxx
+
+3. Run the dev server
+
 pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Access:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+⸻
 
-To learn more about Next.js, take a look at the following resources:
+🧩 User Roles Overview
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+🧑‍🎨 Creators (voice / illustration / choreography)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Can:
+	•	Register IP assets
+	•	Upload image/audio/video files
+	•	Manage inquiries (approve/reject)
+	•	View own assets
 
-## Deploy on Vercel
+🏢 Companies
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Can:
+	•	Browse IP assets
+	•	View asset detail
+	•	Submit licensing inquiries
+	•	Track inquiry statuses
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+⸻
+
+📝 PoC Success Metrics
+	•	15+ creators onboarded
+	•	10+ company inquiries
+	•	3+ simulated paid transactions
+	•	Qualitative validation from both sides
+
+⸻
+
+🚀 Next Steps (Post-PoC)
+	•	Automated contract generator
+	•	Payment integration (Stripe or Web3)
+	•	Organization accounts (teams)
+	•	Versioned IP licenses
+	•	Licensing analytics dashboard
+
+⸻
+
+📄 License
+
+MIT License (or preferred license)
+
+⸻
+
+🙌 Author
+
+IP Connect Team
+(Founder: @gashi_japan)
