@@ -9,11 +9,13 @@ import {
   type IPAsset,
   type UserProfile,
 } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function InquiryPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const { t } = useLanguage();
 
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -115,16 +117,14 @@ export default function InquiryPage() {
 
   if (!id && !statusText) {
     return (
-      <p className="mt-10 text-sm text-slate-400">
-        Loading route…
-      </p>
+      <p className="mt-10 text-sm text-slate-400">{t("loading")}</p>
     );
   }
 
   if (!asset) {
     return (
       <p className="mt-10 text-sm text-slate-400">
-        {statusText ?? "Loading asset…"}
+        {statusText ?? t("loading")}
       </p>
     );
   }
@@ -132,12 +132,12 @@ export default function InquiryPage() {
   return (
     <section className="mx-auto mt-8 max-w-2xl space-y-6 rounded-2xl border border-slate-800 bg-slate-900 p-8">
       <div>
-        <p className="text-sm text-slate-400">Request license for</p>
+        <p className="text-sm text-slate-400">{t("inquiry_request_title")}</p>
         <h1 className="text-2xl font-semibold text-white">{asset.title}</h1>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm font-medium text-slate-200">
-          Usage purpose *
+          {t("inquiry_usage_purpose")} *
           <select
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
             value={purpose}
@@ -155,7 +155,7 @@ export default function InquiryPage() {
           </select>
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          Region *
+          {t("inquiry_region")} *
           <select
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
             value={region}
@@ -173,7 +173,7 @@ export default function InquiryPage() {
           </select>
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          Intended usage period
+          {t("inquiry_period")}
           <input
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
             placeholder="e.g., 3 months, single campaign"
@@ -182,7 +182,7 @@ export default function InquiryPage() {
           />
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          Budget (optional, USD)
+          {t("inquiry_budget")}
           <input
             type="number"
             min="0"
@@ -192,7 +192,7 @@ export default function InquiryPage() {
           />
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          Message *
+          {t("inquiry_message")} *
           <textarea
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
             rows={4}
@@ -207,7 +207,7 @@ export default function InquiryPage() {
           disabled={loading}
           className="w-full rounded-full bg-emerald-500 px-4 py-2 font-semibold text-black disabled:opacity-50"
         >
-          {loading ? "Submitting…" : "Send inquiry"}
+          {loading ? t("loading") : t("inquiry_submit")}
         </button>
       </form>
       {statusText && (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import type { UserProfile } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type NavState =
   | { status: "loading" }
@@ -14,14 +15,18 @@ type NavState =
 export function MainNav() {
   const router = useRouter();
   const [state, setState] = useState<NavState>({ status: "loading" });
+  const { lang, t, setLang } = useLanguage();
 
   useEffect(() => {
-    const hydrate = async () => {
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
+    let isMounted = true;
 
-      if (!user) {
+    const hydrate = async (userId?: string) => {
+      if (!isMounted) return;
+      const existingUserId =
+        userId ??
+        (await supabaseClient.auth.getUser())?.data.user?.id;
+
+      if (!existingUserId) {
         setState({ status: "guest" });
         return;
       }
@@ -29,8 +34,10 @@ export function MainNav() {
       const { data, error } = await supabaseClient
         .from("users")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", existingUserId)
         .single<UserProfile>();
+
+      if (!isMounted) return;
 
       if (error || !data) {
         setState({ status: "guest" });
@@ -41,6 +48,23 @@ export function MainNav() {
     };
 
     hydrate();
+
+    const {
+      data: { subscription },
+    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      const userId = session?.user?.id;
+      if (!userId) {
+        setState({ status: "guest" });
+        return;
+      }
+      hydrate(userId);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -51,12 +75,12 @@ export function MainNav() {
   };
 
   const baseLinks = [
-    { href: "/", label: "Home" },
-    { href: "/ip", label: "Browse IP" },
+    { href: "/", label: t("nav_home") },
+    { href: "/ip", label: t("nav_browse_ip") },
   ];
 
   if (state.status === "loading") {
-    return <p className="text-sm text-slate-400">Loading…</p>;
+    return <p className="text-sm text-slate-400">{t("loading")}</p>;
   }
 
   if (state.status === "guest") {
@@ -75,14 +99,21 @@ export function MainNav() {
           href="/auth/login"
           className="rounded-full bg-emerald-500 px-3 py-1 text-sm font-semibold text-black transition hover:bg-emerald-400"
         >
-          Login
+          {t("nav_login")}
         </Link>
         <Link
           href="/auth/register"
           className="rounded-full border border-emerald-400 px-3 py-1 text-sm text-emerald-300 transition hover:bg-emerald-950/60"
         >
-          Register
+          {t("nav_register")}
         </Link>
+        <button
+          type="button"
+          onClick={() => setLang(lang === "en" ? "ja" : "en")}
+          className="rounded-full border border-slate-700 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-800"
+        >
+          {lang === "en" ? t("nav_lang_ja") : t("nav_lang_en")}
+        </button>
       </div>
     );
   }
@@ -91,10 +122,10 @@ export function MainNav() {
   const roleLinks =
     profile.role === "creator"
       ? [
-          { href: "/creator/dashboard", label: "Creator Dashboard" },
-          { href: "/creator/inquiries", label: "Creator Inbox" },
+          { href: "/creator/dashboard", label: t("nav_creator_dashboard") },
+          { href: "/creator/inquiries", label: t("nav_creator_inbox") },
         ]
-      : [{ href: "/company/inquiries", label: "Company Inquiries" }];
+      : [{ href: "/company/inquiries", label: t("nav_company_inquiries") }];
   const analyticsLink = { href: "/analytics", label: "Analytics" };
 
   return (
@@ -112,13 +143,20 @@ export function MainNav() {
         href={`/users/${profile.id}`}
         className="rounded-full border border-slate-600 px-3 py-1 text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
       >
-        My Profile
+        {t("nav_my_profile")}
       </Link>
       <button
         onClick={handleLogout}
         className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-100 transition hover:bg-slate-600"
       >
-        Logout
+        {t("nav_logout")}
+      </button>
+      <button
+        type="button"
+        onClick={() => setLang(lang === "en" ? "ja" : "en")}
+        className="rounded-full border border-slate-700 px-2 py-1 text-xs text-slate-200 transition hover:bg-slate-800"
+      >
+        {lang === "en" ? t("nav_lang_ja") : t("nav_lang_en")}
       </button>
     </div>
   );

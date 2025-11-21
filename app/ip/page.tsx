@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseClient } from "@/lib/supabaseClient";
 import type { IPAsset } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function PublicIPListing() {
+  const { t } = useLanguage();
   const [assets, setAssets] = useState<IPAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export default function PublicIPListing() {
   }, []);
 
   if (loading) {
-    return <p className="mt-10 text-slate-300">Loading assets…</p>;
+    return <p className="mt-10 text-slate-300">{t("loading")}</p>;
   }
 
   if (error) {
@@ -47,15 +49,15 @@ export default function PublicIPListing() {
     <section className="space-y-6 py-8">
       <div>
         <p className="text-sm text-slate-400">Company view</p>
-        <h1 className="text-3xl font-semibold text-white">IP Catalog</h1>
+        <h1 className="text-3xl font-semibold text-white">
+          {t("ip_browse_title")}
+        </h1>
         <p className="mt-2 text-sm text-slate-400">
           Review available assets, open a detail page, and submit an inquiry.
         </p>
       </div>
       {assets.length === 0 ? (
-        <p className="text-sm text-slate-400">
-          No assets published yet. Creators can add IP from their dashboard.
-        </p>
+        <p className="text-sm text-slate-400">{t("ip_no_assets")}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {assets.map((asset) => (
@@ -64,7 +66,11 @@ export default function PublicIPListing() {
               className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow"
             >
               <p className="text-xs uppercase tracking-wide text-slate-400">
-                {asset.category}
+                {asset.category === "voice"
+                  ? t("ip_category_voice")
+                  : asset.category === "illustration"
+                    ? t("ip_category_illustration")
+                    : t("ip_category_choreography")}
               </p>
               <h2 className="mt-1 text-2xl font-semibold text-white">
                 {asset.title}
@@ -92,4 +98,3 @@ export default function PublicIPListing() {
     </section>
   );
 }
-

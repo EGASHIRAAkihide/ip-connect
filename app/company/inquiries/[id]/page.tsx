@@ -4,26 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
-import type {
-  Inquiry,
-  InquiryStatus,
-  IPAsset,
-  UserProfile,
-} from "@/lib/types";
+import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
+
+type EventStatus =
+  | InquiryStatus
+  | "payment_invoiced"
+  | "payment_paid_simulated";
 
 type InquiryEvent = {
   id: string;
   inquiry_id: string;
   actor_id: string;
   actor_role: "creator" | "company";
-  from_status: InquiryStatus | null;
-  to_status: InquiryStatus;
+  from_status: EventStatus | null;
+  to_status: EventStatus;
   note: string | null;
   created_at: string;
 };
 
 const statusStyles: Record<
-  InquiryStatus,
+  EventStatus,
   { bg: string; text: string; label: string }
 > = {
   pending: {
@@ -40,6 +40,37 @@ const statusStyles: Record<
     bg: "bg-rose-500/15",
     text: "text-rose-300",
     label: "Rejected",
+  },
+  payment_invoiced: {
+    bg: "bg-amber-500/15",
+    text: "text-amber-200",
+    label: "Payment invoiced",
+  },
+  payment_paid_simulated: {
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-200",
+    label: "Payment (simulated)",
+  },
+};
+
+const paymentStyles: Record<
+  Inquiry["payment_status"],
+  { bg: string; text: string; label: string }
+> = {
+  unpaid: {
+    bg: "bg-slate-800",
+    text: "text-slate-200",
+    label: "Unpaid",
+  },
+  invoiced: {
+    bg: "bg-amber-500/20",
+    text: "text-amber-200",
+    label: "Invoiced",
+  },
+  paid_simulated: {
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-200",
+    label: "Paid (simulated)",
   },
 };
 
@@ -157,6 +188,7 @@ export default function CompanyInquiryDetailPage() {
   }
 
   const statusStyle = statusStyles[inquiry.status];
+  const paymentStyle = paymentStyles[inquiry.payment_status];
   const createdAt = inquiry.created_at
     ? new Date(inquiry.created_at).toLocaleString()
     : "—";
@@ -178,11 +210,18 @@ export default function CompanyInquiryDetailPage() {
             </p>
             <p className="text-lg text-slate-200">{asset?.title ?? "Untitled asset"}</p>
           </div>
-          <span
-            className={`rounded-full px-4 py-1 text-sm font-semibold uppercase tracking-wide ${statusStyle.bg} ${statusStyle.text}`}
-          >
-            {statusStyle.label}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span
+              className={`rounded-full px-4 py-1 text-sm font-semibold uppercase tracking-wide ${statusStyle.bg} ${statusStyle.text}`}
+            >
+              {statusStyle.label}
+            </span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
+            >
+              Payment: {paymentStyle.label}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -232,6 +271,24 @@ export default function CompanyInquiryDetailPage() {
             </p>
           </div>
         )}
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-white">
+              Payment status
+            </h2>
+            <p className="text-sm text-slate-400">
+              This flow is simulated for the PoC; no real payments occur.
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
+          >
+            {paymentStyle.label}
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
@@ -293,4 +350,3 @@ export default function CompanyInquiryDetailPage() {
     </section>
   );
 }
-

@@ -4,26 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
-import type {
-  Inquiry,
-  InquiryStatus,
-  IPAsset,
-  UserProfile,
-} from "@/lib/types";
+import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
+
+type EventStatus =
+  | InquiryStatus
+  | "payment_invoiced"
+  | "payment_paid_simulated";
 
 type InquiryEvent = {
   id: string;
   inquiry_id: string;
   actor_id: string;
   actor_role: "creator" | "company";
-  from_status: InquiryStatus | null;
-  to_status: InquiryStatus;
+  from_status: EventStatus | null;
+  to_status: EventStatus;
   note: string | null;
   created_at: string;
 };
 
 const statusStyles: Record<
-  InquiryStatus,
+  EventStatus,
   { bg: string; text: string; label: string }
 > = {
   pending: {
@@ -41,6 +41,37 @@ const statusStyles: Record<
     text: "text-rose-300",
     label: "Rejected",
   },
+  payment_invoiced: {
+    bg: "bg-amber-500/15",
+    text: "text-amber-200",
+    label: "Payment invoiced",
+  },
+  payment_paid_simulated: {
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-200",
+    label: "Payment (simulated)",
+  },
+};
+
+const paymentStyles: Record<
+  Inquiry["payment_status"],
+  { bg: string; text: string; label: string }
+> = {
+  unpaid: {
+    bg: "bg-slate-800",
+    text: "text-slate-200",
+    label: "Unpaid",
+  },
+  invoiced: {
+    bg: "bg-amber-500/20",
+    text: "text-amber-200",
+    label: "Invoiced",
+  },
+  paid_simulated: {
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-200",
+    label: "Paid (simulated)",
+  },
 };
 
 export default function CreatorInquiryDetailPage() {
@@ -55,9 +86,12 @@ export default function CreatorInquiryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [company, setCompany] = useState<UserProfile | null>(null);
   const [events, setEvents] = useState<InquiryEvent[]>([]);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [updatingPayment, setUpdatingPayment] = useState(false);
 
   useEffect(() => {
     const loadInquiry = async () => {
@@ -89,6 +123,8 @@ export default function CreatorInquiryDetailPage() {
         router.replace("/auth/register");
         return;
       }
+
+      setProfile(profile);
 
       if (profile.role !== "creator") {
         router.replace("/ip");
@@ -157,9 +193,72 @@ export default function CreatorInquiryDetailPage() {
   }
 
   const statusStyle = statusStyles[inquiry.status];
+  const paymentStyle = paymentStyles[inquiry.payment_status];
   const createdAt = inquiry.created_at
     ? new Date(inquiry.created_at).toLocaleString()
     : "—";
+  const updatedAt = inquiry.updated_at
+    ? new Date(inquiry.updated_at).toLocaleString()
+    : null;
+
+  const handlePaymentStatusChange = async (
+    nextStatus: Inquiry["payment_status"],
+  ) => {
+    if (!profile || !inquiry) return;
+    if (inquiry.status !== "approved") {
+      setActionMessage("Approve the inquiry before updating payment.");
+      return;
+    }
+
+    setUpdatingPayment(true);
+    setActionMessage(null);
+
+    const now = new Date().toISOString();
+
+    const { error: updateError } = await supabaseClient
+      .from("inquiries")
+      .update({
+        payment_status: nextStatus,
+        updated_at: now,
+      })
+      .eq("id", inquiry.id);
+
+    if (updateError) {
+      setActionMessage("Failed to update payment status.");
+      console.error(updateError);
+      setUpdatingPayment(false);
+      return;
+    }
+
+    const toStatus =
+      nextStatus === "invoiced"
+        ? "payment_invoiced"
+        : "payment_paid_simulated";
+
+    const { data: insertedEvent, error: eventError } = await supabaseClient
+      .from("inquiry_events")
+      .insert({
+        inquiry_id: inquiry.id,
+        actor_id: profile.id,
+        actor_role: "creator",
+        from_status: null,
+        to_status: toStatus,
+        note: `payment_status: ${nextStatus}`,
+      })
+      .select()
+      .single<InquiryEvent>();
+
+    if (eventError) {
+      setActionMessage("Payment saved, but failed to log event.");
+      console.error(eventError);
+    } else if (insertedEvent) {
+      setEvents((prev) => [insertedEvent, ...prev]);
+    }
+
+    setInquiry({ ...inquiry, payment_status: nextStatus, updated_at: now });
+    setActionMessage("Payment status updated.");
+    setUpdatingPayment(false);
+  };
 
   return (
     <section className="mx-auto max-w-3xl space-y-6 py-8">
@@ -177,11 +276,18 @@ export default function CreatorInquiryDetailPage() {
             </p>
             <p className="text-lg text-slate-200">{asset?.title ?? "Untitled asset"}</p>
           </div>
-          <span
-            className={`rounded-full px-4 py-1 text-sm font-semibold uppercase tracking-wide ${statusStyle.bg} ${statusStyle.text}`}
-          >
-            {statusStyle.label}
-          </span>
+          <div className="flex flex-col items-end gap-2">
+            <span
+              className={`rounded-full px-4 py-1 text-sm font-semibold uppercase tracking-wide ${statusStyle.bg} ${statusStyle.text}`}
+            >
+              {statusStyle.label}
+            </span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
+            >
+              Payment: {paymentStyle.label}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -235,6 +341,68 @@ export default function CreatorInquiryDetailPage() {
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
         <p>Submitted: {createdAt}</p>
+        {updatedAt && <p>Updated: {updatedAt}</p>}
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-white">Payment</h2>
+            <p className="text-sm text-slate-400">
+              Mark invoice issued or simulate payment for the PoC.
+            </p>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
+          >
+            {paymentStyle.label}
+          </span>
+        </div>
+        {actionMessage && (
+          <p className="text-sm text-amber-300" role="status">
+            {actionMessage}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <button
+            disabled={
+              inquiry.status !== "approved" ||
+              inquiry.payment_status !== "unpaid" ||
+              updatingPayment
+            }
+            onClick={() => handlePaymentStatusChange("invoiced")}
+            className={`rounded-full border px-4 py-2 text-sm transition ${
+              inquiry.payment_status !== "unpaid" || inquiry.status !== "approved"
+                ? "cursor-not-allowed border-slate-800 text-slate-500"
+                : "border-amber-400 text-amber-200 hover:bg-amber-500/10"
+            }`}
+          >
+            Mark as invoiced
+          </button>
+          <button
+            disabled={
+              inquiry.status !== "approved" ||
+              inquiry.payment_status === "paid_simulated" ||
+              inquiry.payment_status === "unpaid" ||
+              updatingPayment
+            }
+            onClick={() => handlePaymentStatusChange("paid_simulated")}
+            className={`rounded-full border px-4 py-2 text-sm transition ${
+              inquiry.payment_status !== "invoiced" ||
+              inquiry.status !== "approved" ||
+              updatingPayment
+                ? "cursor-not-allowed border-slate-800 text-slate-500"
+                : "border-emerald-400 text-emerald-200 hover:bg-emerald-500/10"
+            }`}
+          >
+            Mark as paid (simulated)
+          </button>
+        </div>
+        {inquiry.status !== "approved" && (
+          <p className="text-xs text-slate-500">
+            Payment actions unlock once the inquiry is approved.
+          </p>
+        )}
       </div>
 
       <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
@@ -291,4 +459,3 @@ export default function CreatorInquiryDetailPage() {
     </section>
   );
 }
-

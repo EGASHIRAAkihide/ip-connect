@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const steps = [
   {
@@ -22,22 +23,16 @@ const steps = [
 ];
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <section className="space-y-10 py-10">
       <div className="space-y-4 text-center">
         <p className="text-sm uppercase tracking-[0.35em] text-slate-400">
           Proof of Concept
         </p>
-        <h1 className="text-4xl font-semibold text-white">
-          IP Connect Minimal Workflow
-        </h1>
-        <p className="text-lg text-slate-300">
-          Implements the requirements from{" "}
-          <code className="rounded bg-slate-800 px-2 py-1">
-            docs/06_PoC/poc_spec.md
-          </code>{" "}
-          section 9 to validate the core flow.
-        </p>
+        <h1 className="text-4xl font-semibold text-white">{t("app_title")}</h1>
+        <p className="text-lg text-slate-300">{t("app_subtitle")}</p>
         <div className="flex flex-wrap justify-center gap-4 text-sm">
           <Link
             href="/auth/register"

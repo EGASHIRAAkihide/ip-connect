@@ -30,12 +30,13 @@ export type Inquiry = {
   ip_id: string;
   creator_id: string;
   company_id: string;
-  purpose: string;
-  region: string;
+  purpose: string | null;
+  region: string | null;
   period: string | null;
   budget: number | null;
   message: string | null;
   status: InquiryStatus;
+  payment_status: "unpaid" | "invoiced" | "paid_simulated";
   created_at?: string;
   updated_at?: string;
 };
@@ -62,4 +63,3 @@ export const INQUIRY_PURPOSES = [
 ] as const;
 
 export const REGION_OPTIONS = ["JP", "Global", "Other"] as const;
-

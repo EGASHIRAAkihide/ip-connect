@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
 import type { IPAsset, UserProfile } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const imageExt = ["png", "jpg", "jpeg", "gif", "webp"];
 const audioExt = ["mp3", "wav", "aac", "ogg", "m4a"];
@@ -14,6 +15,7 @@ export default function IPDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const { t } = useLanguage();
 
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [creator, setCreator] = useState<UserProfile | null>(null);
@@ -73,11 +75,11 @@ export default function IPDetailPage() {
   }, [asset]);
 
   if (!id) {
-    return <p className="mt-10 text-slate-300">Loading route…</p>;
+    return <p className="mt-10 text-slate-300">{t("loading")}</p>;
   }
 
   if (loading) {
-    return <p className="mt-10 text-slate-300">Loading asset…</p>;
+    return <p className="mt-10 text-slate-300">{t("loading")}</p>;
   }
 
   if (error || !asset) {
@@ -115,7 +117,7 @@ export default function IPDetailPage() {
           href={`/ip/${asset.id}/inquire`}
           className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-black"
         >
-          Request license
+          {t("inquiry_request_title")}
         </Link>
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">

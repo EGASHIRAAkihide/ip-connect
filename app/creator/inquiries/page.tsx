@@ -4,11 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
-import type {
-  Inquiry,
-  InquiryStatus,
-  UserProfile,
-} from "@/lib/types";
+import type { Inquiry, InquiryStatus, UserProfile } from "@/lib/types";
 
 type InquiryWithRelations = Inquiry & {
   ip_assets: {
@@ -18,6 +14,27 @@ type InquiryWithRelations = Inquiry & {
   company: {
     email: string;
   } | null;
+};
+
+const paymentStyles: Record<
+  Inquiry["payment_status"],
+  { bg: string; text: string; label: string }
+> = {
+  unpaid: {
+    bg: "bg-slate-800",
+    text: "text-slate-200",
+    label: "unpaid",
+  },
+  invoiced: {
+    bg: "bg-amber-500/20",
+    text: "text-amber-200",
+    label: "invoiced",
+  },
+  paid_simulated: {
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-200",
+    label: "paid",
+  },
 };
 
 export default function CreatorInquiries() {
@@ -205,14 +222,21 @@ export default function CreatorInquiries() {
                   {inquiry.status}
                 </span>
               </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span
+                  className={`rounded-full px-3 py-1 uppercase tracking-wide ${paymentStyles[inquiry.payment_status].bg} ${paymentStyles[inquiry.payment_status].text}`}
+                >
+                  Payment: {paymentStyles[inquiry.payment_status].label}
+                </span>
+              </div>
               <dl className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-2">
                 <div>
                   <dt className="text-slate-500">Purpose</dt>
-                  <dd>{inquiry.purpose}</dd>
+                  <dd>{inquiry.purpose ?? "Not specified"}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Region</dt>
-                  <dd>{inquiry.region}</dd>
+                  <dd>{inquiry.region ?? "Not specified"}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Period</dt>
@@ -261,4 +285,3 @@ export default function CreatorInquiries() {
     </section>
   );
 }
-
