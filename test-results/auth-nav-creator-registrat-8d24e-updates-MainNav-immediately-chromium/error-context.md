@@ -1,0 +1,50 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "IP Connect PoC" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - navigation "Main navigation" [ref=e5]:
+        - generic [ref=e6]:
+          - link "Home" [ref=e7] [cursor=pointer]:
+            - /url: /
+          - link "Browse IP" [ref=e8] [cursor=pointer]:
+            - /url: /ip
+          - link "Login" [ref=e9] [cursor=pointer]:
+            - /url: /auth/login
+          - link "Register" [ref=e10] [cursor=pointer]:
+            - /url: /auth/register
+          - button "日本語" [ref=e11]
+  - main [ref=e12]:
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: Proof of Concept
+        - heading "IP Connect PoC" [level=1] [ref=e16]
+        - paragraph [ref=e17]: Minimal workflow for creators to publish IP assets and companies to request licenses.
+        - generic [ref=e18]:
+          - link "Get Started" [ref=e19] [cursor=pointer]:
+            - /url: /auth/register
+          - link "View Live Catalog" [ref=e20] [cursor=pointer]:
+            - /url: /ip
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - heading "Creators upload IP assets" [level=2] [ref=e23]
+          - paragraph [ref=e24]: Voice actors, illustrators, and choreographers add media, usage terms, and pricing.
+          - link "Add IP Asset" [ref=e25] [cursor=pointer]:
+            - /url: /creator/ip/new
+        - generic [ref=e26]:
+          - heading "Companies browse the catalog" [level=2] [ref=e27]
+          - paragraph [ref=e28]: Public listing surfaces summaries so teams understand scope and price within a minute.
+          - link "Browse Catalog" [ref=e29] [cursor=pointer]:
+            - /url: /ip
+        - generic [ref=e30]:
+          - heading "Inquiries flow back to creators" [level=2] [ref=e31]
+          - paragraph [ref=e32]: Companies submit structured requests and creators respond from a lightweight inbox.
+          - link "Review Inquiries" [ref=e33] [cursor=pointer]:
+            - /url: /creator/inquiries
+  - button "Open Next.js Dev Tools" [ref=e39] [cursor=pointer]:
+    - img [ref=e40]
+  - alert [ref=e43]
+```

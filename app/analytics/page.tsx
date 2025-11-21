@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
         error: statusError,
       } = await supabaseClient
         .from("inquiries")
-        .select("status, count:id", { group: "status" });
+        .select("status, count:id");
 
       if (statusError) {
         const { data: allStatuses, error: fallbackError } = await supabaseClient
