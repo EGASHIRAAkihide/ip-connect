@@ -95,10 +95,11 @@ export function MainNav() {
           { href: "/creator/inquiries", label: "Creator Inbox" },
         ]
       : [{ href: "/company/inquiries", label: "Company Inquiries" }];
+  const analyticsLink = { href: "/analytics", label: "Analytics" };
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      {[...baseLinks, ...roleLinks].map((link) => (
+      {[...baseLinks, ...roleLinks, analyticsLink].map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -122,4 +123,3 @@ export function MainNav() {
     </div>
   );
 }
-

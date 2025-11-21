@@ -91,20 +91,58 @@ export default function CreatorInquiries() {
   }, [router]);
 
   const updateStatus = async (id: string, status: InquiryStatus) => {
-    setMessage(null);
-    const { error } = await supabaseClient
-      .from("inquiries")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", id);
-
-    if (error) {
-      setMessage(error.message);
+    if (!profile) {
+      setMessage("Profile not loaded.");
       return;
     }
 
-    setInquiries((prev) =>
-      prev.map((inq) => (inq.id === id ? { ...inq, status } : inq)),
-    );
+    setMessage(null);
+
+    const { data: existing, error: fetchError } = await supabaseClient
+      .from("inquiries")
+      .select("status")
+      .eq("id", id)
+      .single<Pick<Inquiry, "status">>();
+
+    if (fetchError || !existing) {
+      setMessage("Unable to load inquiry status.");
+      return;
+    }
+
+    const fromStatus = existing.status;
+
+    try {
+      const { error: updateError } = await supabaseClient
+        .from("inquiries")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      const { error: eventError } = await supabaseClient
+        .from("inquiry_events")
+        .insert({
+          inquiry_id: id,
+          actor_id: profile.id,
+          actor_role: "creator",
+          from_status: fromStatus,
+          to_status: status,
+          note: "Status changed by creator",
+        });
+
+      if (eventError) {
+        throw new Error(eventError.message);
+      }
+
+      setInquiries((prev) =>
+        prev.map((inq) => (inq.id === id ? { ...inq, status } : inq)),
+      );
+      setMessage("Status updated.");
+    } catch (error) {
+      setMessage((error as Error).message);
+    }
   };
 
   if (loading) {

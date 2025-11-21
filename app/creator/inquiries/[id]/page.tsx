@@ -4,7 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
-import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
+import type {
+  Inquiry,
+  InquiryStatus,
+  IPAsset,
+  UserProfile,
+} from "@/lib/types";
+
+type InquiryEvent = {
+  id: string;
+  inquiry_id: string;
+  actor_id: string;
+  actor_role: "creator" | "company";
+  from_status: InquiryStatus | null;
+  to_status: InquiryStatus;
+  note: string | null;
+  created_at: string;
+};
 
 const statusStyles: Record<
   InquiryStatus,
@@ -41,6 +57,7 @@ export default function CreatorInquiryDetailPage() {
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [company, setCompany] = useState<UserProfile | null>(null);
+  const [events, setEvents] = useState<InquiryEvent[]>([]);
 
   useEffect(() => {
     const loadInquiry = async () => {
@@ -106,8 +123,15 @@ export default function CreatorInquiryDetailPage() {
           .single<UserProfile>(),
       ]);
 
+      const { data: eventsData } = await supabaseClient
+        .from("inquiry_events")
+        .select("*")
+        .eq("inquiry_id", data.id)
+        .order("created_at", { ascending: false });
+
       setAsset(assetData ?? null);
       setCompany(companyData ?? null);
+      setEvents((eventsData as InquiryEvent[]) ?? []);
       setLoading(false);
     };
 
@@ -211,6 +235,43 @@ export default function CreatorInquiryDetailPage() {
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
         <p>Submitted: {createdAt}</p>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <h2 className="text-base font-semibold text-white">Status history</h2>
+        {events.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            No status changes recorded yet.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {events.map((event) => {
+              const badge = statusStyles[event.to_status];
+              const timestamp = new Date(event.created_at).toLocaleString();
+              return (
+                <li
+                  key={event.id}
+                  className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badge.bg} ${badge.text}`}
+                    >
+                      {badge.label}
+                    </span>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      {event.actor_role}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-300">{timestamp}</p>
+                  {event.note && (
+                    <p className="text-sm text-slate-400">{event.note}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">
