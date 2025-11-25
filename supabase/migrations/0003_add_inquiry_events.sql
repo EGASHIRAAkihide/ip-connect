@@ -9,3 +9,4 @@ create table if not exists inquiry_events (
   created_at timestamptz not null default now()
 );
 
+
