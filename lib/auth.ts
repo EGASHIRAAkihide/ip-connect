@@ -12,19 +12,18 @@ export async function getServerUser() {
 }
 
 export async function getServerUserWithRole() {
+  const supabase = createServerClient();
   const user = await getServerUser();
 
   if (!user) {
     return { user: null, role: null as string | null };
   }
 
-  const supabase = createServerClient();
   const { data, error } = await supabase
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("[getServerUserWithRole] role fetch error:", error);
