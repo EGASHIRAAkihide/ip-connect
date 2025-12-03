@@ -1,30 +1,42 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import {
   IP_CATEGORIES,
   TERM_PRESETS,
   type IPAsset,
   type UserProfile,
 } from "@/lib/types";
+import { createAsset } from "./actions";
 
 const STORAGE_BUCKET = "ip-assets";
 
 export default function NewIPPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createBrowserClient(), []);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] =
     useState<(typeof IP_CATEGORIES)[number]["value"]>("voice");
+  const [assetType, setAssetType] = useState<"choreography" | "voice">(
+    "choreography",
+  );
   const [usagePreset, setUsagePreset] =
     useState<(typeof TERM_PRESETS)[number]>(TERM_PRESETS[0]);
   const [usageNotes, setUsageNotes] = useState("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [choreographyBpm, setChoreographyBpm] = useState("");
+  const [choreographyLengthSeconds, setChoreographyLengthSeconds] =
+    useState("");
+  const [choreographyStyle, setChoreographyStyle] = useState("");
+  const [voiceLanguage, setVoiceLanguage] = useState("");
+  const [voiceGender, setVoiceGender] = useState("");
+  const [voiceTone, setVoiceTone] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,12 +44,12 @@ export default function NewIPPage() {
     const loadProfile = async () => {
       const {
         data: { user },
-      } = await supabaseClient.auth.getUser();
+      } = await supabase.auth.getUser();
       if (!user) {
         router.replace("/auth/login");
         return;
       }
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
@@ -62,7 +74,7 @@ export default function NewIPPage() {
     }
 
     const path = `${profile.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabaseClient.storage
+    const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
       .upload(path, file, {
         upsert: true,
@@ -91,31 +103,46 @@ export default function NewIPPage() {
     setMessage(null);
     try {
       const fileUrl = await uploadFile();
-      const payload = {
-        creator_id: profile.id,
-        title,
-        description,
-        category,
-        file_url: fileUrl,
-        terms: {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("category", category);
+      formData.append("file_url", fileUrl);
+      formData.append("asset_type", assetType);
+      formData.append(
+        "terms",
+        JSON.stringify({
           preset: usagePreset,
           ...(usageNotes ? { notes: usageNotes } : {}),
-        },
-        price_min: priceMin ? Number(priceMin) : null,
-        price_max: priceMax ? Number(priceMax) : null,
-      };
+        }),
+      );
+      if (priceMin) formData.append("price_min", priceMin);
+      if (priceMax) formData.append("price_max", priceMax);
 
-      const { data: asset, error } = await supabaseClient
-        .from("ip_assets")
-        .insert(payload)
-        .select()
-        .single<IPAsset>();
-      if (error || !asset) {
-        throw new Error(error?.message ?? "Failed to save asset.");
+      if (assetType === "choreography") {
+        if (choreographyBpm) formData.append("choreography_bpm", choreographyBpm);
+        if (choreographyLengthSeconds) {
+          formData.append(
+            "choreography_length_seconds",
+            choreographyLengthSeconds,
+          );
+        }
+        if (choreographyStyle) formData.append("choreography_style", choreographyStyle);
+      } else {
+        if (voiceLanguage) formData.append("voice_language", voiceLanguage);
+        if (voiceGender) formData.append("voice_gender", voiceGender);
+        if (voiceTone) formData.append("voice_tone", voiceTone);
       }
 
+      const result = await createAsset(formData);
+      const assetId = (result as IPAsset | { id?: string }).id;
+
       setMessage("IP asset saved.");
-      router.push(`/ip/${asset.id}`);
+      if (assetId) {
+        router.push(`/ip/${assetId}`);
+      } else {
+        router.push("/ip");
+      }
     } catch (err) {
       setMessage((err as Error).message);
     } finally {
@@ -132,6 +159,21 @@ export default function NewIPPage() {
             New IP Asset
           </h1>
         </div>
+      </div>
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-slate-200">
+          Asset type *
+          <select
+            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            value={assetType}
+            onChange={(event) =>
+              setAssetType(event.target.value as "choreography" | "voice")
+            }
+          >
+            <option value="choreography">Choreography (ダンス振付)</option>
+            <option value="voice">Voice (声 / ナレーション)</option>
+          </select>
+        </label>
       </div>
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         <label className="block text-sm font-medium text-slate-200">
@@ -229,6 +271,77 @@ export default function NewIPPage() {
             />
           </label>
         </div>
+        {assetType === "choreography" ? (
+          <div className="space-y-4 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <p className="text-sm font-semibold text-slate-200">
+              Choreography details (optional)
+            </p>
+            <label className="block text-sm font-medium text-slate-200">
+              BPM
+              <input
+                type="number"
+                min="0"
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={choreographyBpm}
+                onChange={(event) => setChoreographyBpm(event.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-200">
+              Length (seconds)
+              <input
+                type="number"
+                min="0"
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={choreographyLengthSeconds}
+                onChange={(event) =>
+                  setChoreographyLengthSeconds(event.target.value)
+                }
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-200">
+              Style
+              <input
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={choreographyStyle}
+                onChange={(event) => setChoreographyStyle(event.target.value)}
+                placeholder="e.g., Hip hop, Jazz, Idol"
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-lg border border-slate-800 bg-slate-950/50 p-4">
+            <p className="text-sm font-semibold text-slate-200">
+              Voice details (optional)
+            </p>
+            <label className="block text-sm font-medium text-slate-200">
+              Language
+              <input
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={voiceLanguage}
+                onChange={(event) => setVoiceLanguage(event.target.value)}
+                placeholder="e.g., Japanese, English"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-200">
+              Gender
+              <input
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={voiceGender}
+                onChange={(event) => setVoiceGender(event.target.value)}
+                placeholder="e.g., male, female, other"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-200">
+              Tone
+              <input
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+                value={voiceTone}
+                onChange={(event) => setVoiceTone(event.target.value)}
+                placeholder="e.g., soft, energetic"
+              />
+            </label>
+          </div>
+        )}
         <div className="flex justify-end gap-3">
           <button
             type="button"
@@ -254,4 +367,3 @@ export default function NewIPPage() {
     </section>
   );
 }
-

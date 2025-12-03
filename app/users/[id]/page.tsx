@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { IPAsset, UserProfile } from "@/lib/types";
 
 export default function UserProfilePage() {
@@ -14,6 +14,7 @@ export default function UserProfilePage() {
     if (!raw) return null;
     return Array.isArray(raw) ? raw[0] : raw;
   }, [params]);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [assets, setAssets] = useState<IPAsset[]>([]);
@@ -32,7 +33,7 @@ export default function UserProfilePage() {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("id", userId)
@@ -48,11 +49,11 @@ export default function UserProfilePage() {
 
       const {
         data: { user },
-      } = await supabaseClient.auth.getUser();
+      } = await supabase.auth.getUser();
       setViewerIsOwner(user?.id === data.id);
 
       if (data.role === "creator") {
-        const { data: assetData } = await supabaseClient
+        const { data: assetData } = await supabase
           .from("ip_assets")
           .select("*")
           .eq("creator_id", data.id)
@@ -180,4 +181,3 @@ export default function UserProfilePage() {
     </section>
   );
 }
-

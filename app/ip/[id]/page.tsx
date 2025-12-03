@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { IPAsset, UserProfile } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -16,6 +16,7 @@ export default function IPDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const { t } = useLanguage();
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [creator, setCreator] = useState<UserProfile | null>(null);
@@ -32,7 +33,7 @@ export default function IPDetailPage() {
 
       console.log("IPDetailPage id from useParams:", id);
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("ip_assets")
         .select("*")
         .eq("id", id)
@@ -48,7 +49,7 @@ export default function IPDetailPage() {
 
       setAsset(data);
 
-      const { data: creatorData, error: creatorError } = await supabaseClient
+      const { data: creatorData, error: creatorError } = await supabase
         .from("users")
         .select("*")
         .eq("id", data.creator_id)

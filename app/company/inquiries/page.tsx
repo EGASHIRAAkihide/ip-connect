@@ -1,27 +1,15 @@
-'use client';
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
-import type { InquiryStatus, UserProfile } from "@/lib/types";
+import { createServerClient } from "@/lib/supabase/server";
+import type { InquiryStatus } from "@/lib/types";
 
 type InquiryWithAsset = {
   id: string;
   ip_id: string;
-  creator_id: string;
-  company_id: string;
-  purpose: string | null;
-  region: string | null;
-  period: string | null;
-  budget: number | null;
-  message: string | null;
   status: InquiryStatus;
+  payment_status: string;
   created_at: string;
   ip_assets: {
-    id: string;
     title: string | null;
-    category: string | null;
   } | null;
 };
 
@@ -46,87 +34,79 @@ const statusStyles: Record<
   },
 };
 
-export default function CompanyInquiriesPage() {
-  const router = useRouter();
-  const [inquiries, setInquiries] = useState<InquiryWithAsset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const paymentLabels: Record<string, string> = {
+  unpaid: "Unpaid",
+  pending: "Pending",
+  paid: "Paid",
+  cancelled: "Cancelled",
+};
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
+export default async function CompanyInquiriesPage() {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
-
-      if (!user) {
-        router.replace("/auth/login");
-        return;
-      }
-
-      const { data: profileData } = await supabaseClient
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single<UserProfile>();
-
-      if (!profileData) {
-        router.replace("/auth/register");
-        return;
-      }
-
-      if (profileData.role !== "company") {
-        router.replace("/ip");
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from("inquiries")
-        .select(
-          `
-            *,
-            ip_assets:ip_id (
-              id,
-              title,
-              category
-            )
-          `,
-        )
-        .eq("company_id", profileData.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-
-      setInquiries(data as InquiryWithAsset[]);
-      setLoading(false);
-    };
-
-    loadData();
-  }, [router]);
-
-  if (loading) {
-    return <p className="mt-10 text-slate-300">Loading inquiries…</p>;
-  }
-
-  if (error) {
+  if (!user) {
     return (
-      <div className="mt-10 space-y-4 text-slate-200">
-        <p>Error loading inquiries: {error}</p>
-        <button
-          onClick={() => router.push("/ip")}
-          className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+      <section className="mx-auto max-w-4xl space-y-6 py-8">
+        <p className="text-sm text-slate-300">
+          Please log in to view inquiries.
+        </p>
+        <Link
+          href="/auth/login"
+          className="inline-flex rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
         >
-          Back to IP catalog
-        </button>
-      </div>
+          Go to login
+        </Link>
+      </section>
     );
   }
+
+  const { data: inquiries } = await supabase
+    .from("inquiries")
+    .select(
+      `
+        id,
+        ip_id,
+        status,
+        payment_status,
+        created_at,
+        ip_assets:ip_id (
+          title
+        )
+      `,
+    )
+    .eq("company_id", user.id)
+    .order("created_at", { ascending: false });
+
+  // Supabaseからの生データ（any）を、明示的に InquiryWithAsset に整形する
+  const typedInquiries: InquiryWithAsset[] = (inquiries ?? []).map(
+    (row: any): InquiryWithAsset => {
+      // ip_assets が配列で返ってくるケースに対応（最初の要素だけ使う）
+      let asset: { title: string | null } | null = null;
+
+      if (row.ip_assets) {
+        if (Array.isArray(row.ip_assets)) {
+          if (row.ip_assets.length > 0) {
+            asset = { title: row.ip_assets[0]?.title ?? null };
+          }
+        } else {
+          // もし単一オブジェクトで返ってきた場合にも対応
+          asset = { title: row.ip_assets.title ?? null };
+        }
+      }
+
+      return {
+        id: String(row.id),
+        ip_id: String(row.ip_id),
+        status: row.status as InquiryStatus,
+        payment_status: String(row.payment_status ?? "unpaid"),
+        created_at: String(row.created_at),
+        ip_assets: asset,
+      };
+    },
+  );
 
   return (
     <section className="mx-auto max-w-4xl space-y-6 py-8">
@@ -140,7 +120,7 @@ export default function CompanyInquiriesPage() {
         </p>
       </header>
 
-      {inquiries.length === 0 ? (
+      {typedInquiries.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-300">
           <p>You haven’t submitted any inquiries yet.</p>
           <Link
@@ -152,11 +132,14 @@ export default function CompanyInquiriesPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {inquiries.map((inquiry) => {
-            const statusStyle = statusStyles[inquiry.status];
+          {typedInquiries.map((inquiry) => {
+            const statusStyle =
+              statusStyles[inquiry.status] ?? statusStyles.pending;
             const assetTitle = inquiry.ip_assets?.title ?? "Untitled asset";
-            const category = inquiry.ip_assets?.category ?? "N/A";
-            const createdAt = new Date(inquiry.created_at).toLocaleDateString();
+            const createdAt = new Date(
+              inquiry.created_at,
+            ).toLocaleDateString();
+
             return (
               <article
                 key={inquiry.id}
@@ -165,7 +148,7 @@ export default function CompanyInquiriesPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-wide text-slate-500">
-                      {category}
+                      IP
                     </p>
                     <h2 className="text-xl font-semibold text-white">
                       {assetTitle}
@@ -177,25 +160,27 @@ export default function CompanyInquiriesPage() {
                     {statusStyle.label}
                   </span>
                 </div>
+
                 <dl className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
                   <div>
-                    <dt className="text-slate-500">Purpose</dt>
-                    <dd>{inquiry.purpose ?? "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-slate-500">Region</dt>
-                    <dd>{inquiry.region ?? "—"}</dd>
+                    <dt className="text-slate-500">Payment</dt>
+                    <dd>
+                      {paymentLabels[inquiry.payment_status] ??
+                        inquiry.payment_status}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-slate-500">Created</dt>
                     <dd>{createdAt}</dd>
                   </div>
+                  <div>
+                    <dt className="text-slate-500">ID</dt>
+                    <dd className="truncate text-slate-500">
+                      {inquiry.id}
+                    </dd>
+                  </div>
                 </dl>
-                {inquiry.message && (
-                  <p className="mt-3 line-clamp-2 text-sm text-slate-400">
-                    {inquiry.message}
-                  </p>
-                )}
+
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link
                     href={`/company/inquiries/${inquiry.id}`}
@@ -218,4 +203,3 @@ export default function CompanyInquiriesPage() {
     </section>
   );
 }
-

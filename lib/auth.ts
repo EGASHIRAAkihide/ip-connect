@@ -1,26 +1,34 @@
-import { supabaseClient } from "./supabaseClient";
-import type { UserProfile } from "./types";
+import { createServerClient } from "@/lib/supabase/server";
 
-export const getCurrentProfile = async (): Promise<UserProfile | null> => {
-  const {
-    data: { user },
-  } = await supabaseClient.auth.getUser();
+export async function getServerUser() {
+  const supabase = createServerClient();
+  const { data, error } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (error || !data?.user) {
     return null;
   }
 
-  const { data, error } = await supabaseClient
+  return data.user;
+}
+
+export async function getServerUserWithRole() {
+  const user = await getServerUser();
+
+  if (!user) {
+    return { user: null, role: null as string | null };
+  }
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
     .from("users")
-    .select("*")
+    .select("role")
     .eq("id", user.id)
+    .limit(1)
     .single();
 
   if (error) {
-    console.error("Failed to load profile", error.message);
-    return null;
+    console.error("[getServerUserWithRole] role fetch error:", error);
   }
 
-  return data as UserProfile;
-};
-
+  return { user, role: data?.role ?? null };
+}

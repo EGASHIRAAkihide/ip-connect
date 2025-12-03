@@ -1,29 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
-import {
-  INQUIRY_PURPOSES,
-  REGION_OPTIONS,
-  type IPAsset,
-  type UserProfile,
-} from "@/lib/types";
+import { createBrowserClient } from "@/lib/supabase/client";
+import type { IPAsset } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { createInquiry } from "./actions";
 
 export default function InquiryPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const { t } = useLanguage();
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   const [asset, setAsset] = useState<IPAsset | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [purpose, setPurpose] = useState<(typeof INQUIRY_PURPOSES)[number]>(
-    INQUIRY_PURPOSES[0],
-  );
-  const [region, setRegion] = useState<(typeof REGION_OPTIONS)[number]>("JP");
-  const [period, setPeriod] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [usageMedia, setUsageMedia] = useState("");
+  const [usagePeriod, setUsagePeriod] = useState("");
   const [budget, setBudget] = useState("");
   const [message, setMessage] = useState("");
   const [statusText, setStatusText] = useState<string | null>(null);
@@ -37,7 +31,7 @@ export default function InquiryPage() {
 
       console.log("InquiryPage id from useParams:", id);
 
-      const { data: assetData, error } = await supabaseClient
+      const { data: assetData, error } = await supabase
         .from("ip_assets")
         .select("*")
         .eq("id", id)
@@ -49,28 +43,6 @@ export default function InquiryPage() {
         return;
       }
       setAsset(assetData);
-
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
-      if (!user) {
-        router.replace("/auth/login");
-        return;
-      }
-      const { data: profileData } = await supabaseClient
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single<UserProfile>();
-      if (!profileData) {
-        router.replace("/auth/register");
-        return;
-      }
-      if (profileData.role !== "company") {
-        router.replace("/ip");
-        return;
-      }
-      setProfile(profileData);
     };
 
     init();
@@ -78,36 +50,29 @@ export default function InquiryPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!asset || !profile) {
+    if (!asset) {
+      setStatusText("Asset not loaded.");
       return;
     }
-    if (!purpose || !region || !message) {
-      setStatusText("Purpose, region, and message are required.");
+    if (!purpose || !usageMedia || !usagePeriod) {
+      setStatusText("Usage purpose, media, and period are required.");
       return;
     }
     setLoading(true);
     setStatusText(null);
 
     try {
-      const payload = {
-        ip_id: asset.id,
-        creator_id: asset.creator_id,
-        company_id: profile.id,
-        purpose,
-        region,
-        period,
-        budget: budget ? Number(budget) : null,
-        message,
-        status: "pending",
-      };
-      const { error } = await supabaseClient
-        .from("inquiries")
-        .insert(payload);
-      if (error) {
-        throw new Error(error.message);
-      }
+      const formData = new FormData();
+      formData.append("usage_purpose", purpose);
+      formData.append("usage_media", usageMedia);
+      formData.append("usage_period", usagePeriod);
+      if (budget) formData.append("budget", budget);
+      if (message) formData.append("message", message);
+      formData.append("creator_id", asset.creator_id);
+
+      await createInquiry(asset.id, formData);
       setStatusText("Inquiry submitted!");
-      router.push("/ip");
+      router.push("/company/inquiries");
     } catch (err) {
       setStatusText((err as Error).message);
     } finally {
@@ -137,52 +102,37 @@ export default function InquiryPage() {
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-sm font-medium text-slate-200">
-          {t("inquiry_usage_purpose")} *
-          <select
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
-            value={purpose}
-            onChange={(event) =>
-              setPurpose(
-                event.target.value as (typeof INQUIRY_PURPOSES)[number],
-              )
-            }
-          >
-            {INQUIRY_PURPOSES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-slate-200">
-          {t("inquiry_region")} *
-          <select
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
-            value={region}
-            onChange={(event) =>
-              setRegion(
-                event.target.value as (typeof REGION_OPTIONS)[number],
-              )
-            }
-          >
-            {REGION_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-slate-200">
-          {t("inquiry_period")}
+          Usage purpose *
           <input
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
-            placeholder="e.g., 3 months, single campaign"
-            value={period}
-            onChange={(event) => setPeriod(event.target.value)}
+            value={purpose}
+            onChange={(event) => setPurpose(event.target.value)}
+            placeholder="e.g., Ad campaign, SNS promo"
+            required
           />
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          {t("inquiry_budget")}
+          Usage media *
+          <input
+            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            value={usageMedia}
+            onChange={(event) => setUsageMedia(event.target.value)}
+            placeholder="e.g., TikTok, YouTube, TV"
+            required
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-200">
+          Usage period *
+          <input
+            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            placeholder="e.g., 3 months, single campaign"
+            value={usagePeriod}
+            onChange={(event) => setUsagePeriod(event.target.value)}
+            required
+          />
+        </label>
+        <label className="block text-sm font-medium text-slate-200">
+          Budget
           <input
             type="number"
             min="0"
@@ -192,11 +142,10 @@ export default function InquiryPage() {
           />
         </label>
         <label className="block text-sm font-medium text-slate-200">
-          {t("inquiry_message")} *
+          Message
           <textarea
             className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
             rows={4}
-            required
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             placeholder="Provide context, campaign info, or questions"

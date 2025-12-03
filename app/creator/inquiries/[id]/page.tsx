@@ -1,264 +1,123 @@
-'use client';
-
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
-import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
+import { notFound } from "next/navigation";
+import { createServerClient } from "@/lib/supabase/server";
+import type { InquiryStatus } from "@/lib/types";
+import { approveInquiry, rejectInquiry, markInquiryPaid } from "./actions";
 
-type EventStatus =
-  | InquiryStatus
-  | "payment_invoiced"
-  | "payment_paid_simulated";
-
-type InquiryEvent = {
+type InquiryWithRelations = {
   id: string;
-  inquiry_id: string;
-  actor_id: string;
-  actor_role: "creator" | "company";
-  from_status: EventStatus | null;
-  to_status: EventStatus;
-  note: string | null;
-  created_at: string;
+  ip_id: string;
+  purpose: string | null;
+  region: string | null;
+  period: string | null;
+  budget: number | null;
+  message: string | null;
+  status: InquiryStatus;
+  payment_status: string | null;
+  created_at: string | null;
+  ip_assets:
+    | { id: string; title: string | null; creator_id: string }
+    | { id: string; title: string | null; creator_id: string }[]
+    | null;
 };
 
-const statusStyles: Record<
-  EventStatus,
-  { bg: string; text: string; label: string }
-> = {
-  pending: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-300",
-    label: "Pending",
-  },
-  approved: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-300",
-    label: "Approved",
-  },
-  rejected: {
-    bg: "bg-rose-500/15",
-    text: "text-rose-300",
-    label: "Rejected",
-  },
-  payment_invoiced: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-200",
-    label: "Payment invoiced",
-  },
-  payment_paid_simulated: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-200",
-    label: "Payment (simulated)",
-  },
+type PageProps = {
+  params: { id: string };
 };
 
-const paymentStyles: Record<
-  Inquiry["payment_status"],
-  { bg: string; text: string; label: string }
-> = {
-  unpaid: {
-    bg: "bg-slate-800",
-    text: "text-slate-200",
-    label: "Unpaid",
-  },
-  invoiced: {
-    bg: "bg-amber-500/20",
-    text: "text-amber-200",
-    label: "Invoiced",
-  },
-  paid_simulated: {
-    bg: "bg-emerald-500/20",
-    text: "text-emerald-200",
-    label: "Paid (simulated)",
-  },
-};
+export default async function CreatorInquiryDetailPage({ params }: PageProps) {
+  const inquiryId = params.id;
+  const supabase = createServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-export default function CreatorInquiryDetailPage() {
-  const router = useRouter();
-  const params = useParams<{ id: string }>();
-  const inquiryId = useMemo(() => {
-    const raw = params?.id;
-    if (!raw) return null;
-    return Array.isArray(raw) ? raw[0] : raw;
-  }, [params]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [inquiry, setInquiry] = useState<Inquiry | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [asset, setAsset] = useState<IPAsset | null>(null);
-  const [company, setCompany] = useState<UserProfile | null>(null);
-  const [events, setEvents] = useState<InquiryEvent[]>([]);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [updatingPayment, setUpdatingPayment] = useState(false);
-
-  useEffect(() => {
-    const loadInquiry = async () => {
-      if (!inquiryId) {
-        setError("Inquiry not found.");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
-
-      if (!user) {
-        router.replace("/auth/login");
-        return;
-      }
-
-      const { data: profile } = await supabaseClient
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single<UserProfile>();
-
-      if (!profile) {
-        router.replace("/auth/register");
-        return;
-      }
-
-      setProfile(profile);
-
-      if (profile.role !== "creator") {
-        router.replace("/ip");
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from("inquiries")
-        .select("*")
-        .eq("id", inquiryId)
-        .eq("creator_id", profile.id)
-        .single<Inquiry>();
-
-      if (error || !data) {
-        setError("Inquiry not found.");
-        setLoading(false);
-        return;
-      }
-
-      setInquiry(data);
-
-      const [{ data: assetData }, { data: companyData }] = await Promise.all([
-        supabaseClient
-          .from("ip_assets")
-          .select("*")
-          .eq("id", data.ip_id)
-          .single<IPAsset>(),
-        supabaseClient
-          .from("users")
-          .select("*")
-          .eq("id", data.company_id)
-          .single<UserProfile>(),
-      ]);
-
-      const { data: eventsData } = await supabaseClient
-        .from("inquiry_events")
-        .select("*")
-        .eq("inquiry_id", data.id)
-        .order("created_at", { ascending: false });
-
-      setAsset(assetData ?? null);
-      setCompany(companyData ?? null);
-      setEvents((eventsData as InquiryEvent[]) ?? []);
-      setLoading(false);
-    };
-
-    loadInquiry();
-  }, [inquiryId, router]);
-
-  if (loading) {
-    return <p className="mt-10 text-slate-300">Loading inquiry…</p>;
-  }
-
-  if (error || !inquiry) {
+  if (userError || !user) {
     return (
-      <div className="mt-10 space-y-4 text-slate-200">
-        <p>{error ?? "Inquiry not found."}</p>
-        <button
-          onClick={() => router.push("/creator/inquiries")}
-          className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+      <section className="mx-auto max-w-3xl space-y-4 py-8">
+        <p className="text-sm text-slate-300">
+          Please log in to view this inquiry.
+        </p>
+        <Link
+          href="/auth/login"
+          className="inline-flex rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
         >
-          Back to inbox
-        </button>
-      </div>
+          Go to login
+        </Link>
+      </section>
     );
   }
 
-  const statusStyle = statusStyles[inquiry.status];
-  const paymentStyle = paymentStyles[inquiry.payment_status];
+  const { data: inquiry, error } = await supabase
+    .from("inquiries")
+    .select(
+      `
+        id,
+        ip_id,
+        purpose,
+        region,
+        period,
+        budget,
+        message,
+        status,
+        payment_status,
+        created_at,
+        ip_assets:ip_id (
+          id,
+          title,
+          creator_id
+        )
+      `,
+    )
+    .eq("id", inquiryId)
+    .single<InquiryWithRelations>();
+
+  if (error || !inquiry) {
+    return notFound();
+  }
+
+  // ip_assets が「配列 or 単一オブジェクト」の両方に対応
+  let assetCreatorId: string | null = null;
+  const ipAssets = inquiry.ip_assets;
+
+  if (ipAssets) {
+    if (Array.isArray(ipAssets)) {
+      if (ipAssets.length > 0) {
+        assetCreatorId = ipAssets[0]?.creator_id ?? null;
+      }
+    } else {
+      assetCreatorId = ipAssets.creator_id ?? null;
+    }
+  }
+
+  if (assetCreatorId !== user.id) {
+    return (
+      <section className="mx-auto max-w-3xl space-y-4 py-8">
+        <p className="text-sm text-slate-300">
+          You do not have access to this inquiry.
+        </p>
+        <Link
+          href="/creator/inquiries"
+          className="inline-flex rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+        >
+          Back to inbox
+        </Link>
+      </section>
+    );
+  }
+
+  const ipAssetForView = Array.isArray(ipAssets)
+    ? ipAssets[0] ?? null
+    : ipAssets ?? null;
+
   const createdAt = inquiry.created_at
     ? new Date(inquiry.created_at).toLocaleString()
-    : "—";
-  const updatedAt = inquiry.updated_at
-    ? new Date(inquiry.updated_at).toLocaleString()
     : null;
 
-  const handlePaymentStatusChange = async (
-    nextStatus: Inquiry["payment_status"],
-  ) => {
-    if (!profile || !inquiry) return;
-    if (inquiry.status !== "approved") {
-      setActionMessage("Approve the inquiry before updating payment.");
-      return;
-    }
-
-    setUpdatingPayment(true);
-    setActionMessage(null);
-
-    const now = new Date().toISOString();
-
-    const { error: updateError } = await supabaseClient
-      .from("inquiries")
-      .update({
-        payment_status: nextStatus,
-        updated_at: now,
-      })
-      .eq("id", inquiry.id);
-
-    if (updateError) {
-      setActionMessage("Failed to update payment status.");
-      console.error(updateError);
-      setUpdatingPayment(false);
-      return;
-    }
-
-    const toStatus =
-      nextStatus === "invoiced"
-        ? "payment_invoiced"
-        : "payment_paid_simulated";
-
-    const { data: insertedEvent, error: eventError } = await supabaseClient
-      .from("inquiry_events")
-      .insert({
-        inquiry_id: inquiry.id,
-        actor_id: profile.id,
-        actor_role: "creator",
-        from_status: null,
-        to_status: toStatus,
-        note: `payment_status: ${nextStatus}`,
-      })
-      .select()
-      .single<InquiryEvent>();
-
-    if (eventError) {
-      setActionMessage("Payment saved, but failed to log event.");
-      console.error(eventError);
-    } else if (insertedEvent) {
-      setEvents((prev) => [insertedEvent, ...prev]);
-    }
-
-    setInquiry({ ...inquiry, payment_status: nextStatus, updated_at: now });
-    setActionMessage("Payment status updated.");
-    setUpdatingPayment(false);
-  };
+  const approveAction = approveInquiry.bind(null, inquiry.id);
+  const rejectAction = rejectInquiry.bind(null, inquiry.id);
+  const markPaidAction = markInquiryPaid.bind(null, inquiry.id);
 
   return (
     <section className="mx-auto max-w-3xl space-y-6 py-8">
@@ -269,41 +128,22 @@ export default function CreatorInquiryDetailPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-semibold text-white">
-              Inquiry details
+              {ipAssetForView?.title ?? "Untitled IP"}
             </h1>
             <p className="text-sm text-slate-400">
-              {asset?.category ?? "IP asset"}
+              Asset ID: {ipAssetForView?.id ?? inquiry.ip_id}
             </p>
-            <p className="text-lg text-slate-200">{asset?.title ?? "Untitled asset"}</p>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <span
-              className={`rounded-full px-4 py-1 text-sm font-semibold uppercase tracking-wide ${statusStyle.bg} ${statusStyle.text}`}
-            >
-              {statusStyle.label}
+          <div className="flex flex-col items-end gap-2 text-sm text-slate-200">
+            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-wide">
+              Status: {inquiry.status}
             </span>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
-            >
-              Payment: {paymentStyle.label}
+            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-wide">
+              Payment: {inquiry.payment_status ?? "unpaid"}
             </span>
           </div>
         </div>
       </header>
-
-      <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-base font-semibold text-white">From company</h2>
-        {company ? (
-          <Link
-            href={`/users/${company.id}`}
-            className="text-sm text-emerald-300 underline"
-          >
-            {company.email}
-          </Link>
-        ) : (
-          <p className="text-sm text-slate-300">Unknown company</p>
-        )}
-      </div>
 
       <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-base font-semibold text-white">Request details</h2>
@@ -337,108 +177,44 @@ export default function CreatorInquiryDetailPage() {
             </p>
           </div>
         )}
-      </div>
-
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400">
-        <p>Submitted: {createdAt}</p>
-        {updatedAt && <p>Updated: {updatedAt}</p>}
+        <div className="text-sm text-slate-500">
+          <p>Submitted: {createdAt ?? "—"}</p>
+        </div>
       </div>
 
       <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-white">Payment</h2>
-            <p className="text-sm text-slate-400">
-              Mark invoice issued or simulate payment for the PoC.
-            </p>
-          </div>
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
-          >
-            {paymentStyle.label}
-          </span>
-        </div>
-        {actionMessage && (
-          <p className="text-sm text-amber-300" role="status">
-            {actionMessage}
-          </p>
-        )}
+        <h2 className="text-base font-semibold text-white">Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <button
-            disabled={
-              inquiry.status !== "approved" ||
-              inquiry.payment_status !== "unpaid" ||
-              updatingPayment
-            }
-            onClick={() => handlePaymentStatusChange("invoiced")}
-            className={`rounded-full border px-4 py-2 text-sm transition ${
-              inquiry.payment_status !== "unpaid" || inquiry.status !== "approved"
-                ? "cursor-not-allowed border-slate-800 text-slate-500"
-                : "border-amber-400 text-amber-200 hover:bg-amber-500/10"
-            }`}
-          >
-            Mark as invoiced
-          </button>
-          <button
-            disabled={
-              inquiry.status !== "approved" ||
-              inquiry.payment_status === "paid_simulated" ||
-              inquiry.payment_status === "unpaid" ||
-              updatingPayment
-            }
-            onClick={() => handlePaymentStatusChange("paid_simulated")}
-            className={`rounded-full border px-4 py-2 text-sm transition ${
-              inquiry.payment_status !== "invoiced" ||
-              inquiry.status !== "approved" ||
-              updatingPayment
-                ? "cursor-not-allowed border-slate-800 text-slate-500"
-                : "border-emerald-400 text-emerald-200 hover:bg-emerald-500/10"
-            }`}
-          >
-            Mark as paid (simulated)
-          </button>
+          <form action={approveAction}>
+            <button
+              className="rounded-full border border-emerald-400 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-500/10"
+              type="submit"
+            >
+              Approve inquiry
+            </button>
+          </form>
+          <form action={rejectAction}>
+            <button
+              className="rounded-full border border-rose-400 px-4 py-2 text-sm text-rose-200 hover:bg-rose-500/10"
+              type="submit"
+            >
+              Reject inquiry
+            </button>
+          </form>
+          <form action={markPaidAction}>
+            <button
+              className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 hover:border-emerald-400 hover:text-emerald-200"
+              type="submit"
+              disabled={inquiry.status !== "approved"}
+            >
+              Mark as paid
+            </button>
+          </form>
         </div>
         {inquiry.status !== "approved" && (
           <p className="text-xs text-slate-500">
-            Payment actions unlock once the inquiry is approved.
+            Mark as paid is available after approval.
           </p>
-        )}
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-base font-semibold text-white">Status history</h2>
-        {events.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No status changes recorded yet.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {events.map((event) => {
-              const badge = statusStyles[event.to_status];
-              const timestamp = new Date(event.created_at).toLocaleString();
-              return (
-                <li
-                  key={event.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badge.bg} ${badge.text}`}
-                    >
-                      {badge.label}
-                    </span>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
-                      {event.actor_role}
-                    </p>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-300">{timestamp}</p>
-                  {event.note && (
-                    <p className="text-sm text-slate-400">{event.note}</p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         )}
       </div>
 
@@ -450,7 +226,7 @@ export default function CreatorInquiryDetailPage() {
           Back to inbox
         </Link>
         <Link
-          href={`/ip/${inquiry.ip_id}`}
+          href={`/ip/${ipAssetForView?.id ?? inquiry.ip_id}`}
           className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
         >
           View IP asset

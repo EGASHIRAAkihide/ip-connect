@@ -1,21 +1,25 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { IPAsset } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function PublicIPListing() {
   const { t } = useLanguage();
+  const supabase = useMemo(() => createBrowserClient(), []);
   const [assets, setAssets] = useState<IPAsset[]>([]);
+  const [assetTypeFilter, setAssetTypeFilter] = useState<
+    "all" | "choreography" | "voice"
+  >("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadAssets = async () => {
       setLoading(true);
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("ip_assets")
         .select("*")
         .order("created_at", { ascending: false });
@@ -32,6 +36,11 @@ export default function PublicIPListing() {
 
     loadAssets();
   }, []);
+
+  const filteredAssets =
+    assetTypeFilter === "all"
+      ? assets
+      : assets.filter((asset) => asset.asset_type === assetTypeFilter);
 
   if (loading) {
     return <p className="mt-10 text-slate-300">{t("loading")}</p>;
@@ -56,11 +65,31 @@ export default function PublicIPListing() {
           Review available assets, open a detail page, and submit an inquiry.
         </p>
       </div>
-      {assets.length === 0 ? (
+      <div className="flex flex-wrap gap-3">
+        {["all", "choreography", "voice"].map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => setAssetTypeFilter(type as typeof assetTypeFilter)}
+            className={`rounded-full border px-3 py-1 text-sm transition ${
+              assetTypeFilter === type
+                ? "border-emerald-400 text-emerald-200"
+                : "border-slate-700 text-slate-300 hover:border-slate-500"
+            }`}
+          >
+            {type === "all"
+              ? "All"
+              : type === "choreography"
+                ? "振付"
+                : "声"}
+          </button>
+        ))}
+      </div>
+      {filteredAssets.length === 0 ? (
         <p className="text-sm text-slate-400">{t("ip_no_assets")}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {assets.map((asset) => (
+          {filteredAssets.map((asset) => (
             <article
               key={asset.id}
               className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow"
@@ -72,6 +101,14 @@ export default function PublicIPListing() {
                     ? t("ip_category_illustration")
                     : t("ip_category_choreography")}
               </p>
+              {asset.asset_type && (
+                <span
+                  className="mt-2 inline-block rounded-full border border-slate-700 px-2 py-0.5 text-xs text-slate-200"
+                  aria-label="asset type"
+                >
+                  {asset.asset_type === "choreography" ? "振付" : "声"}
+                </span>
+              )}
               <h2 className="mt-1 text-2xl font-semibold text-white">
                 {asset.title}
               </h2>

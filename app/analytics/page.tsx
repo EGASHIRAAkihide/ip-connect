@@ -1,177 +1,190 @@
-'use client';
+"use server";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createServerClient } from "@/lib/supabase/server";
 
-type Analytics = {
-  totalCreators: number;
-  totalCompanies: number;
-  totalAssets: number;
+type Counts = {
+  creators: number;
+  totalIPs: number;
   totalInquiries: number;
-  inquiriesByStatus: Record<string, number>;
+  paidLicenses: number;
+  choreography: number;
+  voice: number;
+  inquiries: {
+    pending: number;
+    approved: number;
+    rejected: number;
+    paid: number;
+  };
+  last30d: {
+    newIPs: number;
+    newInquiries: number;
+  };
 };
 
-export default function AnalyticsPage() {
-  const router = useRouter();
-  const [metrics, setMetrics] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadMetrics = async () => {
-      setLoading(true);
-      setError(null);
-
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
-
-      if (!user) {
-        router.replace("/auth/login");
-        setLoading(false);
-        return;
-      }
-
-      const [
-        { count: totalCreators, error: creatorsError },
-        { count: totalCompanies, error: companiesError },
-        { count: totalAssets, error: assetsError },
-        { count: totalInquiries, error: inquiriesError },
-      ] = await Promise.all([
-        supabaseClient
-          .from("users")
-          .select("id", { count: "exact", head: true })
-          .eq("role", "creator"),
-        supabaseClient
-          .from("users")
-          .select("id", { count: "exact", head: true })
-          .eq("role", "company"),
-        supabaseClient
-          .from("ip_assets")
-          .select("id", { count: "exact", head: true }),
-        supabaseClient
-          .from("inquiries")
-          .select("id", { count: "exact", head: true }),
-      ]);
-
-      if (creatorsError || companiesError || assetsError || inquiriesError) {
-        setError("Failed to load analytics.");
-        console.error(
-          creatorsError || companiesError || assetsError || inquiriesError,
-        );
-        setLoading(false);
-        return;
-      }
-
-      const inquiriesByStatus: Record<string, number> = {
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-      };
-
-      const {
-        data: statusRows,
-        error: statusError,
-      } = await supabaseClient
-        .from("inquiries")
-        .select("status, count:id");
-
-      if (statusError) {
-        const { data: allStatuses, error: fallbackError } = await supabaseClient
-          .from("inquiries")
-          .select("status");
-
-        if (fallbackError) {
-          setError("Failed to load analytics.");
-          console.error(statusError, fallbackError);
-          setLoading(false);
-          return;
-        }
-
-        allStatuses?.forEach(({ status }) => {
-          inquiriesByStatus[status] = (inquiriesByStatus[status] || 0) + 1;
-        });
-      } else if (statusRows) {
-        statusRows.forEach((row) => {
-          inquiriesByStatus[row.status] = row.count ?? 0;
-        });
-      }
-
-      setMetrics({
-        totalCreators: totalCreators ?? 0,
-        totalCompanies: totalCompanies ?? 0,
-        totalAssets: totalAssets ?? 0,
-        totalInquiries: totalInquiries ?? 0,
-        inquiriesByStatus,
-      });
-      setLoading(false);
-    };
-
-    loadMetrics();
-  }, [router]);
-
-  if (loading) {
-    return <p className="mt-8 text-slate-300">Loading analytics…</p>;
-  }
-
+async function fetchCount(
+  supabase: ReturnType<typeof createServerClient>,
+  table: string,
+  filter?: (query: any) => any,
+) {
+  const query = supabase.from(table).select("id", { count: "exact", head: true });
+  const { count, error } = filter ? await filter(query) : await query;
   if (error) {
-    return (
-      <p className="mt-8 text-sm text-amber-300" role="alert">
-        {error}
-      </p>
-    );
+    console.error(`[analytics] ${table} count error:`, error);
+    return 0;
   }
+  return count ?? 0;
+}
 
-  if (!metrics) {
-    return null;
-  }
+export default async function AnalyticsPage() {
+  const supabase = createServerClient();
+  const now = new Date();
+  const since30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const statusOrder = ["pending", "approved", "rejected"];
+  const [
+    creators,
+    totalIPs,
+    choreography,
+    voice,
+    totalInquiries,
+    pendingInquiries,
+    approvedInquiries,
+    rejectedInquiries,
+    paidInquiries,
+    newIPs30d,
+    newInquiries30d,
+  ] = await Promise.all([
+    fetchCount(supabase, "users", (q) => q.eq("role", "creator")),
+    fetchCount(supabase, "ip_assets"),
+    fetchCount(supabase, "ip_assets", (q) => q.eq("category", "choreography")),
+    fetchCount(supabase, "ip_assets", (q) => q.eq("category", "voice")),
+    fetchCount(supabase, "inquiries"),
+    fetchCount(supabase, "inquiries", (q) => q.eq("status", "pending")),
+    fetchCount(supabase, "inquiries", (q) => q.eq("status", "approved")),
+    fetchCount(supabase, "inquiries", (q) => q.eq("status", "rejected")),
+    fetchCount(
+      supabase,
+      "inquiries",
+      (q) => q.in("payment_status", ["paid", "paid_simulated"]),
+    ),
+    fetchCount(supabase, "ip_assets", (q) => q.gte("created_at", since30Days)),
+    fetchCount(supabase, "inquiries", (q) => q.gte("created_at", since30Days)),
+  ]);
+
+  const metrics: Counts = {
+    creators,
+    totalIPs,
+    totalInquiries,
+    paidLicenses: paidInquiries,
+    choreography,
+    voice,
+    inquiries: {
+      pending: pendingInquiries,
+      approved: approvedInquiries,
+      rejected: rejectedInquiries,
+      paid: paidInquiries,
+    },
+    last30d: {
+      newIPs: newIPs30d,
+      newInquiries: newInquiries30d,
+    },
+  };
 
   return (
-    <section className="mx-auto mt-8 max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-white">Analytics (PoC)</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          High-level metrics for validating the IP Connect PoC.
+    <section className="mx-auto max-w-5xl space-y-8 py-10">
+      <header className="space-y-2">
+        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
+          Analytics
         </p>
-      </div>
+        <h1 className="text-3xl font-semibold text-white">IP Connect Dashboard</h1>
+        <p className="text-sm text-slate-400">
+          Investor-ready snapshot of growth, supply, and deal flow.
+        </p>
+      </header>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Section 1: Summary cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Creators", value: metrics.totalCreators },
-          { label: "Companies", value: metrics.totalCompanies },
-          { label: "IP Assets", value: metrics.totalAssets },
-          { label: "Inquiries", value: metrics.totalInquiries },
-        ].map((metric) => (
+          { label: "Creators", value: metrics.creators },
+          { label: "Total IPs", value: metrics.totalIPs },
+          { label: "Total Inquiries", value: metrics.totalInquiries },
+          { label: "Paid Licenses", value: metrics.paidLicenses },
+        ].map((item) => (
           <div
-            key={metric.label}
-            className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
+            key={item.label}
+            className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
           >
-            <p className="text-sm text-slate-400">{metric.label}</p>
-            <p className="text-3xl font-semibold text-white">
-              {metric.value}
-            </p>
+            <p className="text-sm text-slate-400">{item.label}</p>
+            <p className="text-3xl font-semibold text-white">{item.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-        <p className="text-sm text-slate-400">Inquiries by status</p>
-        <dl className="mt-3 space-y-2">
-          {statusOrder.map((status) => (
+      {/* Section 2: Asset breakdown */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Asset breakdown</h2>
+          <p className="text-sm text-slate-500">By category</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {[
+            { label: "Choreography", value: metrics.choreography },
+            { label: "Voice", value: metrics.voice },
+          ].map((item) => (
             <div
-              key={status}
-              className="flex items-center justify-between rounded-xl bg-slate-950/40 px-3 py-2"
+              key={item.label}
+              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
             >
-              <dt className="text-sm capitalize text-slate-300">{status}</dt>
-              <dd className="text-lg font-semibold text-white">
-                {metrics.inquiriesByStatus[status] ?? 0}
-              </dd>
+              <p className="text-sm text-slate-400">{item.label}</p>
+              <p className="text-2xl font-semibold text-white">{item.value}</p>
             </div>
           ))}
-        </dl>
+        </div>
+      </div>
+
+      {/* Section 3: Inquiry pipeline */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Inquiry pipeline</h2>
+          <p className="text-sm text-slate-500">Current status mix</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Pending", value: metrics.inquiries.pending },
+            { label: "Approved", value: metrics.inquiries.approved },
+            { label: "Rejected", value: metrics.inquiries.rejected },
+            { label: "Paid", value: metrics.inquiries.paid },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+            >
+              <p className="text-sm text-slate-400">{item.label}</p>
+              <p className="text-2xl font-semibold text-white">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Section 4: Last 30 days growth */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Last 30 days growth</h2>
+          <p className="text-sm text-slate-500">Momentum snapshot</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {[
+            { label: "New IPs (30d)", value: metrics.last30d.newIPs },
+            { label: "New inquiries (30d)", value: metrics.last30d.newInquiries },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+            >
+              <p className="text-sm text-slate-400">{item.label}</p>
+              <p className="text-2xl font-semibold text-white">{item.value}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

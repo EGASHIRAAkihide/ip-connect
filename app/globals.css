@@ -22,4 +22,5 @@
 body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  @apply bg-white text-neutral-900;
 }

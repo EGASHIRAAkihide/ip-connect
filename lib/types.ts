@@ -13,7 +13,9 @@ export type IPAsset = {
   title: string;
   description: string | null;
   category: "voice" | "illustration" | "choreography";
+  asset_type?: "choreography" | "voice";
   file_url: string;
+  metadata?: Record<string, unknown> | null;
   terms: {
     preset: string;
     notes?: string;

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
 
 type EventStatus =
@@ -82,6 +82,7 @@ export default function CompanyInquiryDetailPage() {
     if (!raw) return null;
     return Array.isArray(raw) ? raw[0] : raw;
   }, [params]);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,14 +104,14 @@ export default function CompanyInquiryDetailPage() {
 
       const {
         data: { user },
-      } = await supabaseClient.auth.getUser();
+      } = await supabase.auth.getUser();
 
       if (!user) {
         router.replace("/auth/login");
         return;
       }
 
-      const { data: profile } = await supabaseClient
+      const { data: profile } = await supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
@@ -126,7 +127,7 @@ export default function CompanyInquiryDetailPage() {
         return;
       }
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from("inquiries")
         .select("*")
         .eq("id", inquiryId)
@@ -142,19 +143,19 @@ export default function CompanyInquiryDetailPage() {
       setInquiry(data);
 
       const [{ data: assetData }, { data: creatorData }] = await Promise.all([
-        supabaseClient
+        supabase
           .from("ip_assets")
           .select("*")
           .eq("id", data.ip_id)
           .single<IPAsset>(),
-        supabaseClient
+        supabase
           .from("users")
           .select("*")
           .eq("id", data.creator_id)
           .single<UserProfile>(),
       ]);
 
-      const { data: eventsData } = await supabaseClient
+      const { data: eventsData } = await supabase
         .from("inquiry_events")
         .select("*")
         .eq("inquiry_id", data.id)

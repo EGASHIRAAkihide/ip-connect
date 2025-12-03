@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { Role } from "@/lib/types";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createBrowserClient(), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("creator");
@@ -20,7 +21,7 @@ export default function RegisterPage() {
     setMessage(null);
 
     try {
-      const { data, error } = await supabaseClient.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -35,7 +36,7 @@ export default function RegisterPage() {
         role,
       };
 
-      const { error: profileError } = await supabaseClient
+      const { error: profileError } = await supabase
         .from("users")
         .insert(profilePayload);
 
@@ -113,4 +114,3 @@ export default function RegisterPage() {
     </section>
   );
 }
-

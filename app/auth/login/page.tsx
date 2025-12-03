@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabase/client";
 import type { UserProfile } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createBrowserClient(), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -28,7 +29,7 @@ export default function LoginPage() {
         throw new Error(error?.message ?? "Invalid credentials");
       }
 
-      const { data: profile, error: profileError } = await supabaseClient
+      const { data: profile, error: profileError } = await supabase
         .from("users")
         .select("*")
         .eq("id", data.user.id)
@@ -96,4 +97,3 @@ export default function LoginPage() {
     </section>
   );
 }
-
