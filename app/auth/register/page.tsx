@@ -62,7 +62,7 @@ export default function RegisterPage() {
         <SubmitButton />
       </form>
       {state.error && (
-        <p className="mt-4 text-sm text-amber-600" role="status">
+        <p className="mt-4 text-sm text-neutral-700" role="status">
           {state.error}
         </p>
       )}

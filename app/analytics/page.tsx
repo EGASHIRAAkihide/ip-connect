@@ -1,35 +1,28 @@
-"use server";
-
 import { createServerClient } from "@/lib/supabase/server";
 
 type Counts = {
   creators: number;
   totalIPs: number;
-  totalInquiries: number;
-  paidLicenses: number;
   choreography: number;
   voice: number;
-  inquiries: {
-    pending: number;
-    approved: number;
-    rejected: number;
-    paid: number;
-  };
-  last30d: {
-    newIPs: number;
-    newInquiries: number;
-  };
+  totalInquiries: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  paid: number;
+  newIPs30d: number;
+  newInquiries30d: number;
 };
 
-async function fetchCount(
+async function safeCount(
   supabase: ReturnType<typeof createServerClient>,
   table: string,
   filter?: (query: any) => any,
 ) {
-  const query = supabase.from(table).select("id", { count: "exact", head: true });
+  const query = supabase.from(table).select("*", { head: true, count: "exact" });
   const { count, error } = filter ? await filter(query) : await query;
   if (error) {
-    console.error(`[analytics] ${table} count error:`, error);
+    console.error(`[analytics] count error on ${table}:`, error);
     return 0;
   }
   return count ?? 0;
@@ -37,8 +30,7 @@ async function fetchCount(
 
 export default async function AnalyticsPage() {
   const supabase = createServerClient();
-  const now = new Date();
-  const since30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     creators,
@@ -46,142 +38,116 @@ export default async function AnalyticsPage() {
     choreography,
     voice,
     totalInquiries,
-    pendingInquiries,
-    approvedInquiries,
-    rejectedInquiries,
-    paidInquiries,
+    pending,
+    approved,
+    rejected,
+    paid,
     newIPs30d,
     newInquiries30d,
   ] = await Promise.all([
-    fetchCount(supabase, "users", (q) => q.eq("role", "creator")),
-    fetchCount(supabase, "ip_assets"),
-    fetchCount(supabase, "ip_assets", (q) => q.eq("category", "choreography")),
-    fetchCount(supabase, "ip_assets", (q) => q.eq("category", "voice")),
-    fetchCount(supabase, "inquiries"),
-    fetchCount(supabase, "inquiries", (q) => q.eq("status", "pending")),
-    fetchCount(supabase, "inquiries", (q) => q.eq("status", "approved")),
-    fetchCount(supabase, "inquiries", (q) => q.eq("status", "rejected")),
-    fetchCount(
-      supabase,
-      "inquiries",
-      (q) => q.in("payment_status", ["paid", "paid_simulated"]),
-    ),
-    fetchCount(supabase, "ip_assets", (q) => q.gte("created_at", since30Days)),
-    fetchCount(supabase, "inquiries", (q) => q.gte("created_at", since30Days)),
+    safeCount(supabase, "users", (q) => q.eq("role", "creator")),
+    safeCount(supabase, "ip_assets"),
+    safeCount(supabase, "ip_assets", (q) => q.eq("asset_type", "choreography")),
+    safeCount(supabase, "ip_assets", (q) => q.eq("asset_type", "voice")),
+    safeCount(supabase, "inquiries"),
+    safeCount(supabase, "inquiries", (q) => q.eq("status", "pending")),
+    safeCount(supabase, "inquiries", (q) => q.eq("status", "approved")),
+    safeCount(supabase, "inquiries", (q) => q.eq("status", "rejected")),
+    safeCount(supabase, "inquiries", (q) => q.eq("payment_status", "paid")),
+    safeCount(supabase, "ip_assets", (q) => q.gte("created_at", since30Days)),
+    safeCount(supabase, "inquiries", (q) => q.gte("created_at", since30Days)),
   ]);
 
   const metrics: Counts = {
     creators,
     totalIPs,
-    totalInquiries,
-    paidLicenses: paidInquiries,
     choreography,
     voice,
-    inquiries: {
-      pending: pendingInquiries,
-      approved: approvedInquiries,
-      rejected: rejectedInquiries,
-      paid: paidInquiries,
-    },
-    last30d: {
-      newIPs: newIPs30d,
-      newInquiries: newInquiries30d,
-    },
+    totalInquiries,
+    pending,
+    approved,
+    rejected,
+    paid,
+    newIPs30d,
+    newInquiries30d,
   };
 
   return (
-    <section className="mx-auto max-w-5xl space-y-8 py-10">
+    <section className="mx-auto max-w-5xl space-y-8 py-8">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
-          Analytics
-        </p>
-        <h1 className="text-3xl font-semibold text-white">IP Connect Dashboard</h1>
-        <p className="text-sm text-slate-400">
-          Investor-ready snapshot of growth, supply, and deal flow.
+        <h1 className="text-3xl font-semibold text-neutral-900">Analytics</h1>
+        <p className="text-sm text-neutral-600">
+          Key activity metrics for IP Connect (creators, assets, and licensing pipeline).
         </p>
       </header>
 
-      {/* Section 1: Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-4">
         {[
           { label: "Creators", value: metrics.creators },
           { label: "Total IPs", value: metrics.totalIPs },
           { label: "Total Inquiries", value: metrics.totalInquiries },
-          { label: "Paid Licenses", value: metrics.paidLicenses },
+          { label: "Paid Licenses", value: metrics.paid },
         ].map((item) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+            className="rounded-2xl border border-neutral-200 bg-white p-4"
           >
-            <p className="text-sm text-slate-400">{item.label}</p>
-            <p className="text-3xl font-semibold text-white">{item.value}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+              {item.label}
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-neutral-900">{item.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Section 2: Asset breakdown */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Asset breakdown</h2>
-          <p className="text-sm text-slate-500">By category</p>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
+        {[
+          { label: "Choreography IPs", value: metrics.choreography },
+          { label: "Voice IPs", value: metrics.voice },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-2xl border border-neutral-200 bg-white p-4"
+          >
+            <p className="text-sm font-medium text-neutral-600">{item.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-neutral-900">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-neutral-900">Inquiry pipeline</h2>
+        <div className="mt-4 space-y-3">
           {[
-            { label: "Choreography", value: metrics.choreography },
-            { label: "Voice", value: metrics.voice },
+            { label: "Pending", value: metrics.pending },
+            { label: "Approved", value: metrics.approved },
+            { label: "Rejected", value: metrics.rejected },
+            { label: "Paid", value: metrics.paid },
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+              className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2"
             >
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="text-2xl font-semibold text-white">{item.value}</p>
+              <p className="text-sm text-neutral-700">{item.label}</p>
+              <p className="text-lg font-semibold text-neutral-900">{item.value}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Section 3: Inquiry pipeline */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Inquiry pipeline</h2>
-          <p className="text-sm text-slate-500">Current status mix</p>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-neutral-900">Last 30 days</h2>
+        <div className="mt-4 space-y-3">
           {[
-            { label: "Pending", value: metrics.inquiries.pending },
-            { label: "Approved", value: metrics.inquiries.approved },
-            { label: "Rejected", value: metrics.inquiries.rejected },
-            { label: "Paid", value: metrics.inquiries.paid },
+            { label: "New IPs (30d)", value: metrics.newIPs30d },
+            { label: "New inquiries (30d)", value: metrics.newInquiries30d },
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+              className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2"
             >
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="text-2xl font-semibold text-white">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Section 4: Last 30 days growth */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Last 30 days growth</h2>
-          <p className="text-sm text-slate-500">Momentum snapshot</p>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[
-            { label: "New IPs (30d)", value: metrics.last30d.newIPs },
-            { label: "New inquiries (30d)", value: metrics.last30d.newInquiries },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
-            >
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="text-2xl font-semibold text-white">{item.value}</p>
+              <p className="text-sm text-neutral-700">{item.label}</p>
+              <p className="text-lg font-semibold text-neutral-900">{item.value}</p>
             </div>
           ))}
         </div>

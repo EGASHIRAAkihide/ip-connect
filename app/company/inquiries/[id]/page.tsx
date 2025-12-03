@@ -27,51 +27,56 @@ const statusStyles: Record<
   { bg: string; text: string; label: string }
 > = {
   pending: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-300",
+    bg: "bg-neutral-100",
+    text: "text-neutral-700",
     label: "Pending",
   },
   approved: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-300",
+    bg: "bg-neutral-900",
+    text: "text-white",
     label: "Approved",
   },
   rejected: {
-    bg: "bg-rose-500/15",
-    text: "text-rose-300",
+    bg: "bg-neutral-200",
+    text: "text-neutral-700",
     label: "Rejected",
   },
   payment_invoiced: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-200",
+    bg: "bg-neutral-100",
+    text: "text-neutral-700",
     label: "Payment invoiced",
   },
   payment_paid_simulated: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-200",
+    bg: "bg-neutral-900",
+    text: "text-white",
     label: "Payment (simulated)",
   },
 };
 
 const paymentStyles: Record<
-  Inquiry["payment_status"],
-  { bg: string; text: string; label: string }
+"unpaid" | "invoiced" | "paid_simulated" | "paid",
+{ bg: string; text: string; label: string }
 > = {
-  unpaid: {
-    bg: "bg-slate-800",
-    text: "text-slate-200",
-    label: "Unpaid",
-  },
-  invoiced: {
-    bg: "bg-amber-500/20",
-    text: "text-amber-200",
-    label: "Invoiced",
-  },
-  paid_simulated: {
-    bg: "bg-emerald-500/20",
-    text: "text-emerald-200",
-    label: "Paid (simulated)",
-  },
+unpaid: {
+  bg: "bg-neutral-100",
+  text: "text-neutral-700",
+  label: "Unpaid",
+},
+invoiced: {
+  bg: "bg-neutral-900",
+  text: "text-white",
+  label: "Invoiced",
+},
+paid_simulated: {
+  bg: "bg-neutral-900",
+  text: "text-white",
+  label: "Paid (simulated)",
+},
+paid: {
+  bg: "bg-neutral-900",
+  text: "text-white",
+  label: "Paid",
+},
 };
 
 export default function CompanyInquiryDetailPage() {
@@ -171,16 +176,16 @@ export default function CompanyInquiryDetailPage() {
   }, [inquiryId, router]);
 
   if (loading) {
-    return <p className="mt-10 text-slate-300">Loading inquiry…</p>;
+    return <p className="mt-10 text-sm text-neutral-600">Loading inquiry…</p>;
   }
 
   if (error || !inquiry) {
     return (
-      <div className="mt-10 space-y-4 text-slate-200">
+      <div className="mt-10 space-y-4 text-neutral-800">
         <p>{error ?? "Inquiry not found."}</p>
         <button
           onClick={() => router.push("/company/inquiries")}
-          className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+          className="rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
         >
           Back to inquiries
         </button>
@@ -200,16 +205,16 @@ export default function CompanyInquiryDetailPage() {
   return (
     <section className="mx-auto max-w-3xl space-y-6 py-8">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
+        <p className="text-sm uppercase tracking-[0.25em] text-neutral-500">
           Company dashboard
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-white">Your inquiry</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-3xl font-semibold text-neutral-900">Your inquiry</h1>
+            <p className="text-sm text-neutral-600">
               {asset?.category ?? "IP asset"}
             </p>
-            <p className="text-lg text-slate-200">{asset?.title ?? "Untitled asset"}</p>
+            <p className="text-lg text-neutral-800">{asset?.title ?? "Untitled asset"}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <span
@@ -226,37 +231,37 @@ export default function CompanyInquiryDetailPage() {
         </div>
       </header>
 
-      <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-base font-semibold text-white">Creator</h2>
+      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Creator</h2>
         {creator ? (
           <Link
             href={`/users/${creator.id}`}
-            className="text-sm text-emerald-300 underline"
+            className="text-sm text-neutral-900 underline"
           >
             {creator.email}
           </Link>
         ) : (
-          <p className="text-sm text-slate-300">Unknown creator</p>
+          <p className="text-sm text-neutral-700">Unknown creator</p>
         )}
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-base font-semibold text-white">Request details</h2>
-        <dl className="grid gap-4 text-sm text-slate-300 md:grid-cols-2">
+      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Request details</h2>
+        <dl className="grid gap-4 text-sm text-neutral-700 md:grid-cols-2">
           <div>
-            <dt className="text-slate-500">Purpose</dt>
+            <dt className="text-neutral-500">Purpose</dt>
             <dd>{inquiry.purpose ?? "Not specified"}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Region</dt>
+            <dt className="text-neutral-500">Region</dt>
             <dd>{inquiry.region ?? "Not specified"}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Usage period</dt>
+            <dt className="text-neutral-500">Usage period</dt>
             <dd>{inquiry.period ?? "Not specified"}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Budget</dt>
+            <dt className="text-neutral-500">Budget</dt>
             <dd>
               {inquiry.budget
                 ? `$${inquiry.budget.toLocaleString()}`
@@ -266,21 +271,21 @@ export default function CompanyInquiryDetailPage() {
         </dl>
         {inquiry.message && (
           <div>
-            <dt className="text-sm font-medium text-slate-400">Message</dt>
-            <p className="mt-2 whitespace-pre-line text-sm text-slate-200">
+            <dt className="text-sm font-medium text-neutral-700">Message</dt>
+            <p className="mt-2 whitespace-pre-line text-sm text-neutral-800">
               {inquiry.message}
             </p>
           </div>
         )}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
+      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-semibold text-neutral-900">
               Payment status
             </h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-600">
               This flow is simulated for the PoC; no real payments occur.
             </p>
           </div>
@@ -292,10 +297,10 @@ export default function CompanyInquiryDetailPage() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-        <h2 className="text-base font-semibold text-white">Status history</h2>
+      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
+        <h2 className="text-base font-semibold text-neutral-900">Status history</h2>
         {events.length === 0 ? (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-neutral-600">
             No status changes recorded yet.
           </p>
         ) : (
@@ -306,7 +311,7 @@ export default function CompanyInquiryDetailPage() {
               return (
                 <li
                   key={event.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"
+                  className="rounded-xl border border-neutral-200 bg-white p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <span
@@ -314,13 +319,13 @@ export default function CompanyInquiryDetailPage() {
                     >
                       {badge.label}
                     </span>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">
                       {event.actor_role}
                     </p>
                   </div>
-                  <p className="mt-2 text-sm text-slate-300">{timestamp}</p>
+                  <p className="mt-2 text-sm text-neutral-700">{timestamp}</p>
                   {event.note && (
-                    <p className="text-sm text-slate-400">{event.note}</p>
+                    <p className="text-sm text-neutral-600">{event.note}</p>
                   )}
                 </li>
               );
@@ -329,7 +334,7 @@ export default function CompanyInquiryDetailPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-sm text-slate-400 space-y-1">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 space-y-1">
         <p>Submitted: {createdAt}</p>
         {updatedAt && <p>Updated: {updatedAt}</p>}
       </div>
@@ -337,13 +342,13 @@ export default function CompanyInquiryDetailPage() {
       <div className="flex flex-wrap gap-3">
         <Link
           href="/company/inquiries"
-          className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+          className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-100"
         >
           Back to inquiries
         </Link>
         <Link
           href={`/ip/${inquiry.ip_id}`}
-          className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
+          className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
         >
           View IP asset
         </Link>

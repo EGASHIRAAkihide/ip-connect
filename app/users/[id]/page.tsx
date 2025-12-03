@@ -69,16 +69,16 @@ export default function UserProfilePage() {
   }, [userId]);
 
   if (loading) {
-    return <p className="mt-10 text-slate-300">Loading profile…</p>;
+    return <p className="mt-10 text-sm text-neutral-600">Loading profile…</p>;
   }
 
   if (error || !profile) {
     return (
-      <div className="mt-10 space-y-4 text-slate-200">
+      <div className="mt-10 space-y-4 text-neutral-800">
         <p>{error ?? "Profile not found."}</p>
         <button
           onClick={() => router.push("/ip")}
-          className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+          className="rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
         >
           Back to IP catalog
         </button>
@@ -94,48 +94,48 @@ export default function UserProfilePage() {
         : "User profile";
 
   return (
-    <section className="mx-auto mt-8 max-w-3xl space-y-6 rounded-2xl border border-slate-800 bg-slate-900 p-8">
+    <section className="mx-auto mt-8 max-w-3xl space-y-6 rounded-2xl border border-neutral-200 bg-white p-8">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
+        <p className="text-sm uppercase tracking-[0.25em] text-neutral-500">
           Public profile
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-white">{heading}</h1>
+          <h1 className="text-3xl font-semibold text-neutral-900">{heading}</h1>
           {viewerIsOwner && (
-            <span className="rounded-full border border-emerald-400 px-3 py-1 text-xs uppercase tracking-wide text-emerald-300">
+            <span className="rounded-full border border-neutral-900 px-3 py-1 text-xs uppercase tracking-wide text-neutral-900">
               This is you
             </span>
           )}
         </div>
-        <p className="text-sm text-slate-400">{profile.email}</p>
-        <p className="text-sm text-slate-500">Role: {profile.role}</p>
+        <p className="text-sm text-neutral-600">{profile.email}</p>
+        <p className="text-sm text-neutral-600">Role: {profile.role}</p>
       </header>
 
       {profile.role === "company" ? (
-        <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-6">
-          <h2 className="text-base font-semibold text-white">
+        <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
+          <h2 className="text-base font-semibold text-neutral-900">
             About this company
           </h2>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-neutral-700">
             This company uses IP Connect to discover creators and request
             licensing deals. Public company bios will appear here in future
             versions.
           </p>
           <Link
             href="/ip"
-            className="inline-flex rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+            className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
           >
             Browse IP catalog
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/40 p-6">
-            <h2 className="text-base font-semibold text-white">
+          <div className="space-y-2 rounded-2xl border border-neutral-200 bg-white p-6">
+            <h2 className="text-base font-semibold text-neutral-900">
               Published IP assets
             </h2>
             {assets.length === 0 ? (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-700">
                 This creator has not published any IP assets yet.
               </p>
             ) : (
@@ -143,31 +143,31 @@ export default function UserProfilePage() {
                 {assets.map((asset) => (
                   <li
                     key={asset.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
+                    className="rounded-xl border border-neutral-200 bg-white p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-slate-500">
+                        <p className="text-xs uppercase tracking-wide text-neutral-500">
                           {asset.category}
                         </p>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-semibold text-neutral-900">
                           {asset.title}
                         </h3>
                       </div>
-                      <span className="text-sm text-slate-400">
+                      <span className="text-sm text-neutral-700">
                         {asset.price_min && asset.price_max
                           ? `$${asset.price_min}–$${asset.price_max}`
                           : "Price TBD"}
                       </span>
                     </div>
                     {asset.description && (
-                      <p className="mt-2 text-sm text-slate-300 line-clamp-3">
+                      <p className="mt-2 text-sm text-neutral-700 line-clamp-3">
                         {asset.description}
                       </p>
                     )}
                     <Link
                       href={`/ip/${asset.id}`}
-                      className="mt-3 inline-flex text-sm text-emerald-300 underline"
+                      className="mt-3 inline-flex text-sm text-neutral-900 underline"
                     >
                       View asset
                     </Link>

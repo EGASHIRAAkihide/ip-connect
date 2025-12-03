@@ -18,18 +18,18 @@ const statusStyles: Record<
   { bg: string; text: string; label: string }
 > = {
   pending: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-300",
+    bg: "bg-neutral-100",
+    text: "text-neutral-700",
     label: "Pending",
   },
   approved: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-300",
+    bg: "bg-neutral-900",
+    text: "text-white",
     label: "Approved",
   },
   rejected: {
-    bg: "bg-rose-500/15",
-    text: "text-rose-200",
+    bg: "bg-neutral-200",
+    text: "text-neutral-700",
     label: "Rejected",
   },
 };
@@ -50,12 +50,12 @@ export default async function CompanyInquiriesPage() {
   if (!user) {
     return (
       <section className="mx-auto max-w-4xl space-y-6 py-8">
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-neutral-700">
           Please log in to view inquiries.
         </p>
         <Link
           href="/auth/login"
-          className="inline-flex rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
+          className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
         >
           Go to login
         </Link>
@@ -80,10 +80,8 @@ export default async function CompanyInquiriesPage() {
     .eq("company_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Supabaseからの生データ（any）を、明示的に InquiryWithAsset に整形する
   const typedInquiries: InquiryWithAsset[] = (inquiries ?? []).map(
     (row: any): InquiryWithAsset => {
-      // ip_assets が配列で返ってくるケースに対応（最初の要素だけ使う）
       let asset: { title: string | null } | null = null;
 
       if (row.ip_assets) {
@@ -92,7 +90,6 @@ export default async function CompanyInquiriesPage() {
             asset = { title: row.ip_assets[0]?.title ?? null };
           }
         } else {
-          // もし単一オブジェクトで返ってきた場合にも対応
           asset = { title: row.ip_assets.title ?? null };
         }
       }
@@ -111,21 +108,21 @@ export default async function CompanyInquiriesPage() {
   return (
     <section className="mx-auto max-w-4xl space-y-6 py-8">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-[0.25em] text-slate-500">
+        <p className="text-sm uppercase tracking-[0.25em] text-neutral-500">
           Company
         </p>
-        <h1 className="text-3xl font-semibold text-white">Your inquiries</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-3xl font-semibold text-neutral-900">Your inquiries</h1>
+        <p className="text-sm text-neutral-600">
           Track the status of licensing requests you’ve submitted to creators.
         </p>
       </header>
 
       {typedInquiries.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-300">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-neutral-700">
           <p>You haven’t submitted any inquiries yet.</p>
           <Link
             href="/ip"
-            className="mt-4 inline-flex rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-black"
+            className="mt-4 inline-flex rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
           >
             Browse IP catalog
           </Link>
@@ -143,14 +140,14 @@ export default async function CompanyInquiriesPage() {
             return (
               <article
                 key={inquiry.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                className="rounded-2xl border border-neutral-200 bg-white p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">
                       IP
                     </p>
-                    <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-xl font-semibold text-neutral-900">
                       {assetTitle}
                     </h2>
                   </div>
@@ -161,21 +158,21 @@ export default async function CompanyInquiriesPage() {
                   </span>
                 </div>
 
-                <dl className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-3">
+                <dl className="mt-4 grid gap-3 text-sm text-neutral-700 md:grid-cols-3">
                   <div>
-                    <dt className="text-slate-500">Payment</dt>
+                    <dt className="text-neutral-500">Payment</dt>
                     <dd>
                       {paymentLabels[inquiry.payment_status] ??
                         inquiry.payment_status}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">Created</dt>
+                    <dt className="text-neutral-500">Created</dt>
                     <dd>{createdAt}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">ID</dt>
-                    <dd className="truncate text-slate-500">
+                    <dt className="text-neutral-500">ID</dt>
+                    <dd className="truncate text-neutral-500">
                       {inquiry.id}
                     </dd>
                   </div>
@@ -184,13 +181,13 @@ export default async function CompanyInquiriesPage() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link
                     href={`/company/inquiries/${inquiry.id}`}
-                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+                    className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
                   >
                     View details
                   </Link>
                   <Link
                     href={`/ip/${inquiry.ip_id}`}
-                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100 transition hover:border-emerald-400 hover:text-emerald-300"
+                    className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-100"
                   >
                     View asset
                   </Link>

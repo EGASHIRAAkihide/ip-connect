@@ -29,8 +29,6 @@ export default function InquiryPage() {
     const init = async () => {
       setStatusText(null);
 
-      console.log("InquiryPage id from useParams:", id);
-
       const { data: assetData, error } = await supabase
         .from("ip_assets")
         .select("*")
@@ -38,7 +36,6 @@ export default function InquiryPage() {
         .single<IPAsset>();
 
       if (error || !assetData) {
-        console.log("asset error:", error);
         setStatusText(error?.message ?? "Asset not found.");
         return;
       }
@@ -81,70 +78,68 @@ export default function InquiryPage() {
   };
 
   if (!id && !statusText) {
-    return (
-      <p className="mt-10 text-sm text-slate-400">{t("loading")}</p>
-    );
+    return <p className="mt-10 text-sm text-neutral-600">{t("loading")}</p>;
   }
 
   if (!asset) {
     return (
-      <p className="mt-10 text-sm text-slate-400">
+      <p className="mt-10 text-sm text-neutral-600">
         {statusText ?? t("loading")}
       </p>
     );
   }
 
   return (
-    <section className="mx-auto mt-8 max-w-2xl space-y-6 rounded-2xl border border-slate-800 bg-slate-900 p-8">
+    <section className="mx-auto mt-8 max-w-2xl space-y-6 rounded-2xl border border-neutral-200 bg-white p-8">
       <div>
-        <p className="text-sm text-slate-400">{t("inquiry_request_title")}</p>
-        <h1 className="text-2xl font-semibold text-white">{asset.title}</h1>
+        <p className="text-sm text-neutral-600">{t("inquiry_request_title")}</p>
+        <h1 className="text-2xl font-semibold text-neutral-900">{asset.title}</h1>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block text-sm font-medium text-slate-200">
+        <label className="block text-sm font-medium text-neutral-800">
           Usage purpose *
           <input
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             value={purpose}
             onChange={(event) => setPurpose(event.target.value)}
             placeholder="e.g., Ad campaign, SNS promo"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-200">
+        <label className="block text-sm font-medium text-neutral-800">
           Usage media *
           <input
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             value={usageMedia}
             onChange={(event) => setUsageMedia(event.target.value)}
             placeholder="e.g., TikTok, YouTube, TV"
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-200">
+        <label className="block text-sm font-medium text-neutral-800">
           Usage period *
           <input
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             placeholder="e.g., 3 months, single campaign"
             value={usagePeriod}
             onChange={(event) => setUsagePeriod(event.target.value)}
             required
           />
         </label>
-        <label className="block text-sm font-medium text-slate-200">
+        <label className="block text-sm font-medium text-neutral-800">
           Budget
           <input
             type="number"
             min="0"
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             value={budget}
             onChange={(event) => setBudget(event.target.value)}
           />
         </label>
-        <label className="block text-sm font-medium text-slate-200">
+        <label className="block text-sm font-medium text-neutral-800">
           Message
           <textarea
-            className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/60 p-2 text-white"
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             rows={4}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
@@ -154,13 +149,13 @@ export default function InquiryPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-emerald-500 px-4 py-2 font-semibold text-black disabled:opacity-50"
+          className="w-full rounded-full bg-neutral-900 px-4 py-2 font-semibold text-white disabled:opacity-60"
         >
           {loading ? t("loading") : t("inquiry_submit")}
         </button>
       </form>
       {statusText && (
-        <p className="text-sm text-amber-300" role="status">
+        <p className="text-sm text-neutral-700" role="status">
           {statusText}
         </p>
       )}

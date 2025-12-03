@@ -18,18 +18,18 @@ const statusStyles: Record<
   { bg: string; text: string; label: string }
 > = {
   pending: {
-    bg: "bg-amber-500/15",
-    text: "text-amber-300",
+    bg: "bg-neutral-100",
+    text: "text-neutral-700",
     label: "Pending",
   },
   approved: {
-    bg: "bg-emerald-500/15",
-    text: "text-emerald-300",
+    bg: "bg-neutral-900",
+    text: "text-white",
     label: "Approved",
   },
   rejected: {
-    bg: "bg-rose-500/15",
-    text: "text-rose-200",
+    bg: "bg-neutral-200",
+    text: "text-neutral-700",
     label: "Rejected",
   },
 };
@@ -50,12 +50,12 @@ export default async function CreatorInquiries() {
   if (!user) {
     return (
       <section className="space-y-6 py-8">
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-neutral-700">
           Please log in to view your inquiries.
         </p>
         <Link
           href="/auth/login"
-          className="inline-flex rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black"
+          className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
         >
           Go to login
         </Link>
@@ -81,7 +81,6 @@ export default async function CreatorInquiries() {
     .eq("ip_assets.creator_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Supabaseからの生データ（any）を、明示的に CreatorInquiryWithAsset に整形する
   const typedInquiries: CreatorInquiryWithAsset[] = (inquiries ?? []).map(
     (row: any): CreatorInquiryWithAsset => {
       let asset: { title: string | null } | null = null;
@@ -111,12 +110,12 @@ export default async function CreatorInquiries() {
     <section className="space-y-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-400">Inquiry inbox</p>
-          <h1 className="text-3xl font-semibold text-white">Your inquiries</h1>
+          <p className="text-sm text-neutral-600">Inquiry inbox</p>
+          <h1 className="text-3xl font-semibold text-neutral-900">Your inquiries</h1>
         </div>
       </div>
       {typedInquiries.length === 0 ? (
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-neutral-600">
           No inquiries yet. Companies can submit from the IP detail page.
         </p>
       ) : (
@@ -128,11 +127,11 @@ export default async function CreatorInquiries() {
             return (
               <article
                 key={inquiry.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-5"
+                className="rounded-2xl border border-neutral-200 bg-white p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-xs uppercase text-slate-400">
+                    <p className="text-xs uppercase text-neutral-500">
                       {assetTitle}
                     </p>
                   </div>
@@ -143,30 +142,30 @@ export default async function CreatorInquiries() {
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded-full bg-slate-800 px-3 py-1 text-slate-200">
+                  <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-neutral-700">
                     Payment: {paymentLabels[inquiry.payment_status] ?? inquiry.payment_status}
                   </span>
                 </div>
-                <dl className="mt-4 grid gap-3 text-sm text-slate-300 md:grid-cols-2">
+                <dl className="mt-4 grid gap-3 text-sm text-neutral-700 md:grid-cols-2">
                   <div>
-                    <dt className="text-slate-500">Created</dt>
+                    <dt className="text-neutral-500">Created</dt>
                     <dd>{createdAt}</dd>
                   </div>
                   <div>
-                    <dt className="text-slate-500">ID</dt>
-                    <dd className="truncate text-slate-500">{inquiry.id}</dd>
+                    <dt className="text-neutral-500">ID</dt>
+                    <dd className="truncate text-neutral-500">{inquiry.id}</dd>
                   </div>
                 </dl>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link
                     href={`/creator/inquiries/${inquiry.id}`}
-                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+                    className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-100"
                   >
                     View details
                   </Link>
                   <Link
                     href={`/ip/${inquiry.ip_id}`}
-                    className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-100"
+                    className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-100"
                   >
                     View asset
                   </Link>

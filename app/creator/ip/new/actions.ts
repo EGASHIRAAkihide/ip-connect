@@ -2,8 +2,11 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 
+type AssetType = "choreography" | "voice";
+
 export async function createAsset(formData: FormData) {
   const supabase = createServerClient();
+
   const {
     data: { user },
     error: userError,
@@ -13,16 +16,21 @@ export async function createAsset(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const title = formData.get("title")?.toString() ?? "";
-  const description = formData.get("description")?.toString() ?? null;
-  const category = formData.get("category")?.toString() ?? "";
+  const title = formData.get("title")?.toString().trim() ?? "";
+  const description =
+    formData.get("description")?.toString().trim() || null;
+  const category = formData.get("category")?.toString().trim() ?? "";
+  const fileUrl = formData.get("file_url")?.toString().trim() ?? "";
+
+  const rawAssetType = formData.get("asset_type")?.toString() as
+    | AssetType
+    | undefined;
+  const assetType: AssetType = rawAssetType ?? "choreography";
+
   const priceMinRaw = formData.get("price_min")?.toString();
   const priceMaxRaw = formData.get("price_max")?.toString();
+
   const termsRaw = formData.get("terms")?.toString();
-  const fileUrl = formData.get("file_url")?.toString() ?? "";
-  const assetType =
-    (formData.get("asset_type")?.toString() as "choreography" | "voice") ??
-    "choreography";
 
   const choreographyBpm = formData.get("choreography_bpm")?.toString();
   const choreographyLength = formData
@@ -34,30 +42,49 @@ export async function createAsset(formData: FormData) {
   const voiceGender = formData.get("voice_gender")?.toString();
   const voiceTone = formData.get("voice_tone")?.toString();
 
+  if (!title || !category || !fileUrl) {
+    throw new Error("Missing required fields.");
+  }
+
   const terms =
     termsRaw && termsRaw.length > 0
       ? (() => {
           try {
             return JSON.parse(termsRaw);
-          } catch (_err) {
+          } catch {
             return termsRaw;
           }
         })()
       : null;
 
+  const priceMin =
+    priceMinRaw && !Number.isNaN(Number(priceMinRaw))
+      ? Number(priceMinRaw)
+      : null;
+  const priceMax =
+    priceMaxRaw && !Number.isNaN(Number(priceMaxRaw))
+      ? Number(priceMaxRaw)
+      : null;
+
   const metadata =
     assetType === "choreography"
       ? {
-          type: "choreography",
-          bpm: choreographyBpm ? Number(choreographyBpm) : null,
-          length_seconds: choreographyLength ? Number(choreographyLength) : null,
-          style: choreographyStyle || null,
+          type: "choreography" as const,
+          bpm:
+            choreographyBpm && !Number.isNaN(Number(choreographyBpm))
+              ? Number(choreographyBpm)
+              : null,
+          length_seconds:
+            choreographyLength && !Number.isNaN(Number(choreographyLength))
+              ? Number(choreographyLength)
+              : null,
+          style: choreographyStyle?.trim() || null,
         }
       : {
-          type: "voice",
-          language: voiceLanguage || null,
-          gender: voiceGender || null,
-          tone: voiceTone || null,
+          type: "voice" as const,
+          language: voiceLanguage?.trim() || null,
+          gender: voiceGender?.trim() || null,
+          tone: voiceTone?.trim() || null,
         };
 
   const payload = {
@@ -66,8 +93,8 @@ export async function createAsset(formData: FormData) {
     category,
     asset_type: assetType,
     metadata,
-    price_min: priceMinRaw ? Number(priceMinRaw) : null,
-    price_max: priceMaxRaw ? Number(priceMaxRaw) : null,
+    price_min: priceMin,
+    price_max: priceMax,
     terms,
     file_url: fileUrl,
     creator_id: user.id,

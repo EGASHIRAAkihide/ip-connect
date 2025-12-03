@@ -24,22 +24,17 @@ export default function IPDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // id がまだ取れていない初期レンダリングをスキップ
     if (!id) return;
 
     const loadAsset = async () => {
       setLoading(true);
       setError(null);
 
-      console.log("IPDetailPage id from useParams:", id);
-
       const { data, error } = await supabase
         .from("ip_assets")
         .select("*")
         .eq("id", id)
         .single<IPAsset>();
-
-      console.log("Supabase ip_assets result:", { data, error });
 
       if (error || !data) {
         setError(error?.message ?? "Asset not found.");
@@ -76,20 +71,20 @@ export default function IPDetailPage() {
   }, [asset]);
 
   if (!id) {
-    return <p className="mt-10 text-slate-300">{t("loading")}</p>;
+    return <p className="mt-10 text-sm text-neutral-600">{t("loading")}</p>;
   }
 
   if (loading) {
-    return <p className="mt-10 text-slate-300">{t("loading")}</p>;
+    return <p className="mt-10 text-sm text-neutral-600">{t("loading")}</p>;
   }
 
   if (error || !asset) {
     return (
-      <div className="mt-10 space-y-3 text-slate-300">
+      <div className="mt-10 space-y-3 text-neutral-700">
         <p>{error}</p>
         <button
           onClick={() => router.push("/ip")}
-          className="text-emerald-300 underline"
+          className="text-neutral-900 underline"
         >
           Back to list
         </button>
@@ -101,14 +96,14 @@ export default function IPDetailPage() {
     <section className="space-y-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-400">
+          <p className="text-xs uppercase tracking-wide text-neutral-500">
             {asset.category}
           </p>
-          <h1 className="text-3xl font-semibold text-white">{asset.title}</h1>
+          <h1 className="text-3xl font-semibold text-neutral-900">{asset.title}</h1>
           {creator && (
             <Link
               href={`/users/${creator.id}`}
-              className="text-sm text-emerald-300 underline"
+              className="text-sm text-neutral-900 underline"
             >
               Creator: {creator.email}
             </Link>
@@ -116,13 +111,13 @@ export default function IPDetailPage() {
         </div>
         <Link
           href={`/ip/${asset.id}/inquire`}
-          className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-black"
+          className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
         >
           {t("inquiry_request_title")}
         </Link>
       </div>
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-        <h2 className="text-lg font-semibold text-white">Preview</h2>
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-neutral-900">Preview</h2>
         <div className="mt-4">
           {previewType === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -149,7 +144,7 @@ export default function IPDetailPage() {
               href={asset.file_url}
               target="_blank"
               rel="noreferrer"
-              className="text-emerald-300 underline"
+              className="text-neutral-900 underline"
             >
               Open asset
             </a>
@@ -157,18 +152,18 @@ export default function IPDetailPage() {
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-          <h3 className="text-lg font-semibold text-white">Usage terms</h3>
-          <p className="mt-2 text-sm text-slate-300">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <h3 className="text-lg font-semibold text-neutral-900">Usage terms</h3>
+          <p className="mt-2 text-sm text-neutral-700">
             {asset.terms?.preset ?? "Not provided"}
           </p>
           {asset.terms?.notes && (
-            <p className="mt-1 text-sm text-slate-400">{asset.terms.notes}</p>
+            <p className="mt-1 text-sm text-neutral-600">{asset.terms.notes}</p>
           )}
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-          <h3 className="text-lg font-semibold text-white">Price range</h3>
-          <p className="mt-2 text-sm text-slate-300">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <h3 className="text-lg font-semibold text-neutral-900">Price range</h3>
+          <p className="mt-2 text-sm text-neutral-700">
             {asset.price_min && asset.price_max
               ? `$${asset.price_min}–$${asset.price_max}`
               : "Discuss with creator"}
@@ -176,9 +171,9 @@ export default function IPDetailPage() {
         </div>
       </div>
       {asset.description && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-          <h3 className="text-lg font-semibold text-white">Description</h3>
-          <p className="mt-2 text-sm text-slate-300">{asset.description}</p>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <h3 className="text-lg font-semibold text-neutral-900">Description</h3>
+          <p className="mt-2 text-sm text-neutral-700">{asset.description}</p>
         </div>
       )}
     </section>
