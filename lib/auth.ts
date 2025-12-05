@@ -1,7 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 
 export async function getServerUser() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data?.user) {
@@ -12,7 +12,7 @@ export async function getServerUser() {
 }
 
 export async function getServerUserWithRole() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const user = await getServerUser();
 
   if (!user) {

@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 type AssetType = "choreography" | "voice";
 
 export async function createAsset(formData: FormData) {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const {
     data: { user },

@@ -14,7 +14,7 @@ type PaymentStatusCounts = {
 };
 
 async function safeCount(
-  supabase: ReturnType<typeof createServerClient>,
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
   table: string,
   filter?: (query: any) => any,
 ) {
@@ -28,7 +28,7 @@ async function safeCount(
 }
 
 export default async function AnalyticsPage() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
 
   const [
     totalCreators,

@@ -13,7 +13,7 @@ type InquiryWithAsset = {
 };
 
 async function verifyCreator(
-  supabase: ReturnType<typeof createServerClient>,
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
   inquiryId: string,
   userId: string,
 ) {
@@ -55,7 +55,7 @@ async function verifyCreator(
 }
 
 export async function approveInquiry(inquiryId: string) {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -104,7 +104,7 @@ export async function approveInquiry(inquiryId: string) {
 }
 
 export async function rejectInquiry(inquiryId: string) {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -148,7 +148,7 @@ export async function rejectInquiry(inquiryId: string) {
 }
 
 export async function markInquiryPaid(inquiryId: string) {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,43 +1,53 @@
-// lib/supabase/server.ts
 import { cookies } from "next/headers";
 import {
   createServerClient as createSupabaseServerClient,
   type CookieOptions,
 } from "@supabase/ssr";
 
-export function createServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Missing Supabase environment variables");
-  }
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables");
+}
+
+/**
+ * Server Component / page.tsx 用（cookie は読むだけ）
+ */
+export async function createServerClient() {
+  const cookieStore = await cookies(); // ← await
 
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      /** 読み取り: cookies() が Promise なので毎回 await する */
-      async get(name: string) {
-        const store = await cookies();
-        return store.get(name)?.value;
+      get(name: string) {
+        return cookieStore.get(name)?.value;
       },
-      /** 設定 */
-      async set(name: string, value: string, options: CookieOptions) {
-        const store = await cookies();
-        store.set({
-          name,
-          value,
-          ...options,
-        });
+      set(_name: string, _value: string, _options: CookieOptions) {
+        // no-op
       },
-      /** 削除 */
-      async remove(name: string, options: CookieOptions) {
-        const store = await cookies();
-        store.set({
-          name,
-          value: "",
-          ...options,
-          maxAge: 0,
-        });
+      remove(_name: string, _options: CookieOptions) {
+        // no-op
+      },
+    },
+  });
+}
+
+/**
+ * Server Action / Route Handler 用（cookie 書き換え可）
+ */
+export async function createServerActionClient() {
+  const cookieStore = await cookies(); // ← await
+
+  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        cookieStore.set({ name, value, ...options });
+      },
+      remove(name: string, options: CookieOptions) {
+        cookieStore.set({ name, value: "", ...options });
       },
     },
   });

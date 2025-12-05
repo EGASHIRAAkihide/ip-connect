@@ -40,7 +40,7 @@ type PageProps = {
 
 export default async function CreatorInquiryDetailPage({ params }: PageProps) {
   const inquiryId = params.id;
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
     error: userError,

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createServerClient } from "@/lib/supabase/server";
+import { createServerActionClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 
 export async function loginAction(
@@ -15,7 +15,7 @@ export async function loginAction(
     return { error: "Email and password are required." };
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerActionClient(); // ← await を追加
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -50,7 +50,7 @@ export async function registerAction(
     return { error: "Email and password are required." };
   }
 
-  const supabase = createServerClient();
+  const supabase = await createServerActionClient(); // ← ここも serverActionClient
   const { data, error } = await supabase.auth.signUp({
     email,
     password,

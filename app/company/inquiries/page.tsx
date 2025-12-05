@@ -42,7 +42,7 @@ const paymentLabels: Record<string, string> = {
 };
 
 export default async function CompanyInquiriesPage() {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

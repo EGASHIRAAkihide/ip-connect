@@ -3,7 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 
 export async function createInquiry(assetId: string, formData: FormData) {
-  const supabase = createServerClient();
+  const supabase = await createServerClient();
   const {
     data: { user },
     error: userError,
