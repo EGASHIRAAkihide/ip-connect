@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
-import type { IPAsset, UserProfile } from "@/lib/types";
+import type { ChoreoMetadata, IPAsset, UserProfile, VoiceMetadata } from "@/lib/types";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const imageExt = ["png", "jpg", "jpeg", "gif", "webp"];
@@ -119,7 +119,13 @@ export default function IPDetailPage() {
       <div className="rounded-2xl border border-neutral-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-neutral-900">Preview</h2>
         <div className="mt-4">
-          {previewType === "image" && (
+          {asset.asset_type === "voice" ? (
+            <audio controls className="w-full">
+              <source src={asset.file_url} />
+              Your browser does not support audio.
+            </audio>
+          ) : null}
+          {asset.asset_type !== "voice" && previewType === "image" && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={asset.file_url}
@@ -127,7 +133,7 @@ export default function IPDetailPage() {
               className="max-h-96 w-full rounded-xl object-contain"
             />
           )}
-          {previewType === "audio" && (
+          {asset.asset_type !== "voice" && previewType === "audio" && (
             <audio controls className="w-full">
               <source src={asset.file_url} />
               Your browser does not support audio.
@@ -176,6 +182,57 @@ export default function IPDetailPage() {
           <p className="mt-2 text-sm text-neutral-700">{asset.description}</p>
         </div>
       )}
+      {asset.asset_type === "voice" && asset.metadata?.type === "voice" && (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <h3 className="text-lg font-semibold text-neutral-900">Voice details</h3>
+          <dl className="mt-3 grid gap-3 text-sm text-neutral-700 md:grid-cols-3">
+            <div>
+              <dt className="text-neutral-500">Language</dt>
+              <dd className="text-neutral-900">
+                {(asset.metadata as VoiceMetadata).language ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-neutral-500">Gender</dt>
+              <dd className="text-neutral-900">
+                {(asset.metadata as VoiceMetadata).gender ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-neutral-500">Tone</dt>
+              <dd className="text-neutral-900">
+                {(asset.metadata as VoiceMetadata).tone ?? "—"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
+      {asset.asset_type === "choreography" &&
+        asset.metadata?.type === "choreography" && (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <h3 className="text-lg font-semibold text-neutral-900">Choreography details</h3>
+            <dl className="mt-3 grid gap-3 text-sm text-neutral-700 md:grid-cols-3">
+              <div>
+                <dt className="text-neutral-500">BPM</dt>
+                <dd className="text-neutral-900">
+                  {(asset.metadata as ChoreoMetadata).bpm ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-neutral-500">Length (sec)</dt>
+                <dd className="text-neutral-900">
+                  {(asset.metadata as ChoreoMetadata).length_seconds ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-neutral-500">Style</dt>
+                <dd className="text-neutral-900">
+                  {(asset.metadata as ChoreoMetadata).style ?? "—"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
     </section>
   );
 }

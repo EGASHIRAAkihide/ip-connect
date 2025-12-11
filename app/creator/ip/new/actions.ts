@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import type { ChoreoMetadata, VoiceMetadata } from "@/lib/types";
 
 type AssetType = "choreography" | "voice";
 
@@ -66,26 +67,28 @@ export async function createAsset(formData: FormData) {
       ? Number(priceMaxRaw)
       : null;
 
-  const metadata =
-    assetType === "choreography"
-      ? {
-          type: "choreography" as const,
-          bpm:
-            choreographyBpm && !Number.isNaN(Number(choreographyBpm))
-              ? Number(choreographyBpm)
-              : null,
-          length_seconds:
-            choreographyLength && !Number.isNaN(Number(choreographyLength))
-              ? Number(choreographyLength)
-              : null,
-          style: choreographyStyle?.trim() || null,
-        }
-      : {
-          type: "voice" as const,
-          language: voiceLanguage?.trim() || null,
-          gender: voiceGender?.trim() || null,
-          tone: voiceTone?.trim() || null,
-        };
+  let metadata: ChoreoMetadata | VoiceMetadata | null = null;
+  if (assetType === "choreography") {
+    metadata = {
+      type: "choreography",
+      bpm:
+        choreographyBpm && !Number.isNaN(Number(choreographyBpm))
+          ? Number(choreographyBpm)
+          : null,
+      length_seconds:
+        choreographyLength && !Number.isNaN(Number(choreographyLength))
+          ? Number(choreographyLength)
+          : null,
+      style: choreographyStyle?.trim() || null,
+    };
+  } else {
+    metadata = {
+      type: "voice",
+      language: voiceLanguage?.trim() || null,
+      gender: voiceGender?.trim() || null,
+      tone: voiceTone?.trim() || null,
+    };
+  }
 
   const payload = {
     title,

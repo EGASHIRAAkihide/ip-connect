@@ -7,15 +7,31 @@ export type UserProfile = {
   created_at?: string;
 };
 
+export type AssetType = "voice" | "choreography";
+
+export type VoiceMetadata = {
+  type: "voice";
+  language?: string | null;
+  gender?: string | null;
+  tone?: string | null;
+};
+
+export type ChoreoMetadata = {
+  type: "choreography";
+  bpm?: number | null;
+  length_seconds?: number | null;
+  style?: string | null;
+};
+
 export type IPAsset = {
   id: string;
   creator_id: string;
   title: string;
   description: string | null;
   category: "voice" | "illustration" | "choreography";
-  asset_type?: "choreography" | "voice";
+  asset_type: AssetType;
   file_url: string;
-  metadata?: Record<string, unknown> | null;
+  metadata?: VoiceMetadata | ChoreoMetadata | null;
   terms: {
     preset: string;
     notes?: string;
