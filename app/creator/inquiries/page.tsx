@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/types";
+import { getServerUserWithRole } from "@/lib/auth";
 
 type CreatorInquiryWithAsset = {
   id: string;
@@ -42,26 +44,15 @@ const paymentLabels: Record<string, string> = {
 };
 
 export default async function CreatorInquiries() {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { user, role } = await getServerUserWithRole();
   if (!user) {
-    return (
-      <section className="space-y-6 py-8">
-        <p className="text-sm text-neutral-700">
-          Please log in to view your inquiries.
-        </p>
-        <Link
-          href="/auth/login"
-          className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
-        >
-          Go to login
-        </Link>
-      </section>
-    );
+    redirect("/auth/login");
   }
+  if (role !== "creator") {
+    redirect("/ip");
+  }
+
+  const supabase = await createServerClient();
 
   const { data: inquiries } = await supabase
     .from("inquiries")

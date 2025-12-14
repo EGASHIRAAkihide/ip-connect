@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/types";
 import { approveInquiry, rejectInquiry, markInquiryPaid } from "./actions";
+import { getServerUserWithRole } from "@/lib/auth";
 
 type InquiryWithRelations = {
   id: string;
@@ -40,25 +41,17 @@ type PageProps = {
 
 export default async function CreatorInquiryDetailPage({ params }: PageProps) {
   const inquiryId = params.id;
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { user, role } = await getServerUserWithRole();
 
-  if (userError || !user) {
-    return (
-      <section className="mx-auto max-w-3xl space-y-4 py-8">
-        <p className="text-sm text-neutral-700">Please log in to view this inquiry.</p>
-        <Link
-          href="/auth/login"
-          className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
-        >
-          Go to login
-        </Link>
-      </section>
-    );
+  if (!user) {
+    redirect("/auth/login");
   }
+
+  if (role !== "creator") {
+    redirect("/ip");
+  }
+
+  const supabase = await createServerClient();
 
   const { data: inquiry, error } = await supabase
     .from("inquiries")

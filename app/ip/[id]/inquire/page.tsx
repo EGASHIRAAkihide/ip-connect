@@ -16,6 +16,7 @@ export default function InquiryPage() {
 
   const [asset, setAsset] = useState<IPAsset | null>(null);
   const [purpose, setPurpose] = useState("");
+  const [region, setRegion] = useState("");
   const [usageMedia, setUsageMedia] = useState("");
   const [usagePeriod, setUsagePeriod] = useState("");
   const [budget, setBudget] = useState("");
@@ -51,8 +52,8 @@ export default function InquiryPage() {
       setStatusText("Asset not loaded.");
       return;
     }
-    if (!purpose || !usageMedia || !usagePeriod) {
-      setStatusText("Usage purpose, media, and period are required.");
+    if (!purpose || !region || !usagePeriod) {
+      setStatusText("Usage purpose, region, and period are required.");
       return;
     }
     setLoading(true);
@@ -60,9 +61,10 @@ export default function InquiryPage() {
 
     try {
       const formData = new FormData();
-      formData.append("usage_purpose", purpose);
-      formData.append("usage_media", usageMedia);
-      formData.append("usage_period", usagePeriod);
+      formData.append("purpose", purpose);
+      formData.append("region", region);
+      formData.append("period", usagePeriod);
+      if (usageMedia) formData.append("usage_media", usageMedia);
       if (budget) formData.append("budget", budget);
       if (message) formData.append("message", message);
       formData.append("creator_id", asset.creator_id);
@@ -107,13 +109,22 @@ export default function InquiryPage() {
           />
         </label>
         <label className="block text-sm font-medium text-neutral-800">
-          Usage media *
+          Region *
+          <input
+            className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
+            value={region}
+            onChange={(event) => setRegion(event.target.value)}
+            placeholder="e.g., JP, Global"
+            required
+          />
+        </label>
+        <label className="block text-sm font-medium text-neutral-800">
+          Usage media
           <input
             className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
             value={usageMedia}
             onChange={(event) => setUsageMedia(event.target.value)}
             placeholder="e.g., TikTok, YouTube, TV"
-            required
           />
         </label>
         <label className="block text-sm font-medium text-neutral-800">

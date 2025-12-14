@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import {
@@ -16,6 +16,14 @@ const STORAGE_BUCKET = "ip-assets";
 type AssetType = "choreography" | "voice";
 
 export default function NewIPPage() {
+  return (
+    <Suspense fallback={<p className="mt-10 text-sm text-neutral-600">Loading...</p>}>
+      <NewIPForm />
+    </Suspense>
+  );
+}
+
+function NewIPForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();

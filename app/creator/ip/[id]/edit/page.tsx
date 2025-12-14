@@ -1,67 +1,67 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { updateAsset } from "./actions";
 import {
   IP_CATEGORIES,
   TERM_PRESETS,
-  type ChoreoMetadata,
   type IPAsset,
   type UserProfile,
-  type VoiceMetadata,
 } from "@/lib/types";
+import { updateAsset } from "./actions";
 
 const STORAGE_BUCKET = "ip-assets";
 
 type AssetType = "choreography" | "voice";
 
 export default function EditIPPage() {
-  const params = useParams<{ id: string }>();
-  const assetId = useMemo(() => {
-    const raw = params?.id;
-    if (!raw) return null;
-    return Array.isArray(raw) ? raw[0] : raw;
-  }, [params]);
-
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const assetId = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : null;
   const supabase = useMemo(() => createBrowserClient(), []);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asset, setAsset] = useState<IPAsset | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   const [assetType, setAssetType] = useState<AssetType>("choreography");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] =
     useState<(typeof IP_CATEGORIES)[number]["value"]>("voice");
+
   const [usagePreset, setUsagePreset] =
     useState<(typeof TERM_PRESETS)[number]>(TERM_PRESETS[0]);
   const [usageNotes, setUsageNotes] = useState("");
+
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
+
   const [file, setFile] = useState<File | null>(null);
   const [existingFileUrl, setExistingFileUrl] = useState<string | null>(null);
 
+  // choreography metadata
   const [choreographyBpm, setChoreographyBpm] = useState("");
   const [choreographyLengthSeconds, setChoreographyLengthSeconds] =
     useState("");
   const [choreographyStyle, setChoreographyStyle] = useState("");
 
+  // voice metadata
   const [voiceLanguage, setVoiceLanguage] = useState("");
   const [voiceGender, setVoiceGender] = useState("");
   const [voiceTone, setVoiceTone] = useState("");
 
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
   useEffect(() => {
     const load = async () => {
-      if (!assetId) return;
-      setLoading(true);
-      setMessage(null);
+      if (!assetId) {
+        setMessage("Asset not found.");
+        setInitializing(false);
+        return;
+      }
 
       const {
         data: { user },
@@ -78,7 +78,12 @@ export default function EditIPPage() {
         .eq("id", user.id)
         .single<UserProfile>();
 
-      if (!profileData || profileData.role !== "creator") {
+      if (!profileData) {
+        router.replace("/auth/register");
+        return;
+      }
+
+      if (profileData.role !== "creator") {
         router.replace("/ip");
         return;
       }
@@ -92,75 +97,64 @@ export default function EditIPPage() {
         .single<IPAsset>();
 
       if (error || !assetData) {
-        setMessage("Asset not found.");
-        setLoading(false);
+        setMessage(error?.message ?? "Asset not found.");
+        setInitializing(false);
         return;
       }
 
       if (assetData.creator_id !== profileData.id) {
-        setMessage("You do not have permission to edit this asset.");
-        setLoading(false);
+        router.replace("/ip");
         return;
       }
 
       setAsset(assetData);
-      setAssetType((assetData.asset_type as AssetType) ?? "choreography");
+      setAssetType(assetData.asset_type);
       setTitle(assetData.title ?? "");
       setDescription(assetData.description ?? "");
-      setCategory(
-        (assetData.category as (typeof IP_CATEGORIES)[number]["value"]) ??
-          "voice",
-      );
-      setExistingFileUrl(assetData.file_url ?? null);
-      setPriceMin(
-        assetData.price_min !== null && assetData.price_min !== undefined
-          ? String(assetData.price_min)
-          : "",
-      );
-      setPriceMax(
-        assetData.price_max !== null && assetData.price_max !== undefined
-          ? String(assetData.price_max)
-          : "",
-      );
+      setCategory(assetData.category);
+      setExistingFileUrl(assetData.file_url);
 
-      const terms = assetData.terms as any;
-      if (terms?.preset && TERM_PRESETS.includes(terms.preset)) {
-        setUsagePreset(terms.preset);
+      if (assetData.price_min != null) setPriceMin(String(assetData.price_min));
+      if (assetData.price_max != null) setPriceMax(String(assetData.price_max));
+
+      if (assetData.terms?.preset) {
+        const presetValue = TERM_PRESETS.includes(
+          assetData.terms.preset as (typeof TERM_PRESETS)[number],
+        )
+          ? (assetData.terms.preset as (typeof TERM_PRESETS)[number])
+          : TERM_PRESETS[0];
+        setUsagePreset(presetValue);
       }
-      if (terms?.notes) {
-        setUsageNotes(String(terms.notes));
+      if (assetData.terms?.notes) {
+        setUsageNotes(assetData.terms.notes);
       }
 
-      const metadata = assetData.metadata;
-      if (metadata?.type === "choreography") {
-        const choreoMeta = metadata as ChoreoMetadata;
-        setChoreographyBpm(
-          choreoMeta.bpm !== null && choreoMeta.bpm !== undefined
-            ? String(choreoMeta.bpm)
-            : "",
-        );
-        setChoreographyLengthSeconds(
-          choreoMeta.length_seconds !== null &&
-            choreoMeta.length_seconds !== undefined
-            ? String(choreoMeta.length_seconds)
-            : "",
-        );
-        setChoreographyStyle(choreoMeta.style ?? "");
-      } else if (metadata?.type === "voice") {
-        const voiceMeta = metadata as VoiceMetadata;
-        setVoiceLanguage(voiceMeta.language ?? "");
-        setVoiceGender(voiceMeta.gender ?? "");
-        setVoiceTone(voiceMeta.tone ?? "");
+      if (assetData.asset_type === "choreography" && assetData.metadata?.type === "choreography") {
+        const meta = assetData.metadata;
+        if (meta.bpm != null) setChoreographyBpm(String(meta.bpm));
+        if (meta.length_seconds != null) {
+          setChoreographyLengthSeconds(String(meta.length_seconds));
+        }
+        if (meta.style) setChoreographyStyle(meta.style);
       }
 
-      setLoading(false);
+      if (assetData.asset_type === "voice" && assetData.metadata?.type === "voice") {
+        const meta = assetData.metadata;
+        if (meta.language) setVoiceLanguage(meta.language);
+        if (meta.gender) setVoiceGender(meta.gender);
+        if (meta.tone) setVoiceTone(meta.tone);
+      }
+
+      setInitializing(false);
     };
 
     void load();
   }, [assetId, supabase, router]);
 
   const uploadFile = async () => {
-    if (!file || !profile) return existingFileUrl ?? "";
+    if (!file || !profile) {
+      throw new Error("File and profile are required.");
+    }
 
     const path = `${profile.id}/${Date.now()}-${file.name}`;
     const { error } = await supabase.storage
@@ -184,25 +178,32 @@ export default function EditIPPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     if (!profile || !assetId) {
       setMessage("Profile not loaded.");
       return;
     }
 
-    setSaving(true);
+    if (!title || !category) {
+      setMessage("Title and category are required.");
+      return;
+    }
+
+    setLoading(true);
     setMessage(null);
 
     try {
-      let fileUrl = existingFileUrl ?? "";
+      let fileUrl = existingFileUrl;
       if (file) {
         fileUrl = await uploadFile();
       }
 
       if (!fileUrl) {
-        throw new Error("File is required.");
+        throw new Error("Media file is required.");
       }
 
       const formData = new FormData();
+      formData.append("id", assetId);
       formData.append("title", title);
       formData.append("description", description);
       formData.append("category", category);
@@ -225,10 +226,7 @@ export default function EditIPPage() {
           formData.append("choreography_bpm", choreographyBpm);
         }
         if (choreographyLengthSeconds) {
-          formData.append(
-            "choreography_length_seconds",
-            choreographyLengthSeconds,
-          );
+          formData.append("choreography_length_seconds", choreographyLengthSeconds);
         }
         if (choreographyStyle) {
           formData.append("choreography_style", choreographyStyle);
@@ -239,33 +237,36 @@ export default function EditIPPage() {
         if (voiceTone) formData.append("voice_tone", voiceTone);
       }
 
-      await updateAsset(assetId, formData);
+      const result = await updateAsset(formData);
+      const updatedId = (result as IPAsset | { id?: string }).id ?? assetId;
+
       setMessage("IP asset updated.");
-      router.push(`/ip/${assetId}`);
+      router.push(`/ip/${updatedId}`);
     } catch (err) {
       setMessage((err as Error).message);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const fileAccept = assetType === "choreography" ? "video/*" : "audio/*";
+  const fileAccept =
+    assetType === "choreography" ? "video/*" : "audio/*";
 
-  if (loading) {
-    return <p className="mt-8 text-sm text-neutral-600">Loading asset…</p>;
+  if (initializing) {
+    return <p className="mt-10 text-sm text-neutral-600">Loading...</p>;
   }
 
-  if (!assetId || !asset) {
+  if (!asset) {
     return (
-      <div className="mt-8 space-y-3 text-neutral-800">
-        <p>Asset not found.</p>
-        <Link
-          href="/creator/dashboard"
-          className="text-sm text-neutral-900 underline"
+      <section className="mx-auto mt-8 max-w-3xl rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+        <p className="text-sm text-neutral-700">{message ?? "Asset not found."}</p>
+        <button
+          onClick={() => router.push("/creator/dashboard")}
+          className="mt-3 rounded-full border border-neutral-300 px-3 py-1 text-sm font-semibold text-neutral-800 hover:border-neutral-900"
         >
           Back to dashboard
-        </Link>
-      </div>
+        </button>
+      </section>
     );
   }
 
@@ -278,15 +279,9 @@ export default function EditIPPage() {
             Edit IP Asset
           </h1>
           <p className="mt-1 text-xs text-neutral-500">
-            Update details for your choreography or voice asset.
+            Update choreography or voice IP while keeping existing media if unchanged.
           </p>
         </div>
-        <Link
-          href={`/ip/${assetId}`}
-          className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold text-neutral-800 hover:border-neutral-900"
-        >
-          View public page
-        </Link>
       </div>
 
       <div className="mt-4">
@@ -299,8 +294,12 @@ export default function EditIPPage() {
               setAssetType(event.target.value as AssetType)
             }
           >
-            <option value="choreography">Choreography（ダンス振付）</option>
-            <option value="voice">Voice（声・ナレーション）</option>
+            <option value="choreography">
+              Choreography（ダンス振付）
+            </option>
+            <option value="voice">
+              Voice（声・ナレーション）
+            </option>
           </select>
         </label>
       </div>
@@ -357,22 +356,17 @@ export default function EditIPPage() {
             }}
           />
           <p className="mt-1 text-xs text-neutral-500">
-            {assetType === "choreography"
-              ? "Upload a video file for the choreography."
-              : "Upload an audio file for the voice / narration."}
+            Leave empty to keep the current file.
           </p>
           {existingFileUrl && (
-            <p className="mt-1 text-xs text-neutral-600">
-              Current file:{" "}
-              <a
-                href={existingFileUrl}
-                className="underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {existingFileUrl}
-              </a>
-            </p>
+            <a
+              href={existingFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block text-xs text-neutral-800 underline"
+            >
+              View current media
+            </a>
           )}
         </label>
 
@@ -441,7 +435,9 @@ export default function EditIPPage() {
                 min="0"
                 className="mt-2 w-full rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900"
                 value={choreographyBpm}
-                onChange={(event) => setChoreographyBpm(event.target.value)}
+                onChange={(event) =>
+                  setChoreographyBpm(event.target.value)
+                }
               />
             </label>
             <label className="block text-sm font-medium text-neutral-800">
@@ -511,10 +507,10 @@ export default function EditIPPage() {
           </button>
           <button
             type="submit"
-            disabled={saving}
+            disabled={loading}
             className="rounded-full bg-neutral-900 px-6 py-2 font-semibold text-white hover:bg-neutral-800 disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {loading ? "Saving…" : "Update IP"}
           </button>
         </div>
       </form>

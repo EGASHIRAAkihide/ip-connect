@@ -13,9 +13,10 @@ export async function createInquiry(assetId: string, formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const usage_purpose = formData.get("usage_purpose")?.toString() ?? null;
+  const purpose = formData.get("purpose")?.toString() ?? null;
+  const region = formData.get("region")?.toString() ?? null;
+  const period = formData.get("period")?.toString() ?? null;
   const usage_media = formData.get("usage_media")?.toString() ?? null;
-  const usage_period = formData.get("usage_period")?.toString() ?? null;
   const budgetRaw = formData.get("budget")?.toString();
   const message = formData.get("message")?.toString() ?? null;
   const creatorId = formData.get("creator_id")?.toString() ?? null;
@@ -26,9 +27,10 @@ export async function createInquiry(assetId: string, formData: FormData) {
       ip_id: assetId,
       ...(creatorId ? { creator_id: creatorId } : {}),
       company_id: user.id,
-      usage_purpose,
+      purpose,
+      region,
+      period,
       usage_media,
-      usage_period,
       budget: budgetRaw ? Number(budgetRaw) : null,
       message,
       status: "pending",
