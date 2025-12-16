@@ -12,7 +12,7 @@ export async function loginAction(
   const password = formData.get("password") as string | null;
 
   if (!email || !password) {
-    return { error: "Email and password are required." };
+    return { error: "メールアドレスとパスワードは必須です。" };
   }
 
   const supabase = await createServerActionClient(); // ← await を追加
@@ -22,7 +22,7 @@ export async function loginAction(
   });
 
   if (error || !data.user) {
-    return { error: error?.message ?? "Invalid credentials." };
+    return { error: error?.message ?? "メールアドレスまたはパスワードが正しくありません。" };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -32,7 +32,7 @@ export async function loginAction(
     .maybeSingle();
 
   if (profileError || !profile?.role) {
-    return { error: "Profile not found. Please register again." };
+    return { error: "プロフィール情報が見つかりません。再度登録してください。" };
   }
 
   redirect(profile.role === "creator" ? "/creator/dashboard" : "/ip");
@@ -47,7 +47,7 @@ export async function registerAction(
   const role = (formData.get("role") as Role | null) ?? "creator";
 
   if (!email || !password) {
-    return { error: "Email and password are required." };
+    return { error: "メールアドレスとパスワードは必須です。" };
   }
 
   const supabase = await createServerActionClient(); // ← ここも serverActionClient
@@ -57,7 +57,7 @@ export async function registerAction(
   });
 
   if (error || !data.user) {
-    return { error: error?.message ?? "Failed to create account." };
+    return { error: error?.message ?? "アカウント作成に失敗しました。" };
   }
 
   const { error: profileError } = await supabase.from("users").insert({

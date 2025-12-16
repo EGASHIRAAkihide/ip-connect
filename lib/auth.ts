@@ -16,12 +16,12 @@ export async function getServerUserWithRole() {
   const user = await getServerUser();
 
   if (!user) {
-    return { user: null, role: null as string | null };
+    return { user: null, role: null as string | null, isAdmin: false };
   }
 
   const { data, error } = await supabase
     .from("users")
-    .select("role")
+    .select("role, is_admin")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -29,5 +29,5 @@ export async function getServerUserWithRole() {
     console.error("[getServerUserWithRole] role fetch error:", error);
   }
 
-  return { user, role: data?.role ?? null };
+  return { user, role: data?.role ?? null, isAdmin: Boolean(data?.is_admin) };
 }

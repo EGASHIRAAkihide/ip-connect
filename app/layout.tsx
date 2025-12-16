@@ -6,7 +6,7 @@ import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 export const metadata: Metadata = {
   title: "IP Connect PoC",
   description:
-    "Minimal workflow for creators to publish IP assets and companies to request licenses.",
+    "クリエイターのIPを公開し、企業がライセンス利用を相談できる最小限のワークフローです。",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className="antialiased">
         <LanguageProvider>
           <MainNav />

@@ -22,11 +22,14 @@ export async function createServerClient() {
       get(name: string) {
         return cookieStore.get(name)?.value;
       },
-      set(_name: string, _value: string, _options: CookieOptions) {
-        // no-op
+      set(name: string, value: string, options: CookieOptions) {
+        void name;
+        void value;
+        void options;
       },
-      remove(_name: string, _options: CookieOptions) {
-        // no-op
+      remove(name: string, options: CookieOptions) {
+        void name;
+        void options;
       },
     },
   });

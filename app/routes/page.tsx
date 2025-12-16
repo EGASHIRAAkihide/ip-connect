@@ -13,84 +13,84 @@ type Section = {
 
 const sections: Section[] = [
   {
-    title: "Public",
+    title: "公開",
     routes: [
-      { path: "/", description: "Landing page" },
+      { path: "/", description: "トップページ" },
       {
         path: "/ip",
-        description: "IP catalog (choreography & voice)",
+        description: "IP一覧（振付/声）",
       },
       {
         path: "/ip/[id]",
         alias: "/ip/:id",
-        description: "IP detail (dynamic route)",
+        description: "IP詳細（動的ルート）",
       },
       {
         path: "/ip/[id]/inquire",
         alias: "/ip/:id/inquire",
-        description: "Submit licensing inquiry for a specific IP (dynamic route)",
+        description: "IPへの問い合わせ送信（動的ルート）",
       },
     ],
   },
   {
-    title: "Auth",
+    title: "認証",
     routes: [
-      { path: "/auth/login", description: "Log in" },
-      { path: "/auth/register", description: "Sign up" },
+      { path: "/auth/login", description: "ログイン" },
+      { path: "/auth/register", description: "新規登録" },
     ],
   },
   {
-    title: "Creator",
+    title: "クリエイター",
     routes: [
       {
         path: "/creator/dashboard",
-        description: "Creator dashboard overview",
+        description: "クリエイター用ダッシュボード",
       },
       {
         path: "/creator/ip/new",
-        description: "Register new choreography or voice IP",
+        description: "振付/声のIPを新規登録",
       },
       {
         path: "/creator/inquiries",
-        description: "Inbox – inquiries for your IP assets",
+        description: "問い合わせ受信箱",
       },
       {
         path: "/creator/inquiries/[id]",
         alias: "/creator/inquiries/:id",
-        description: "Inquiry detail & actions (approve / reject / mark paid)",
+        description: "問い合わせ詳細・対応（承認/却下など）",
       },
     ],
   },
   {
-    title: "Company",
+    title: "企業",
     routes: [
       {
         path: "/company/inquiries",
-        description: "List of inquiries you have submitted",
+        description: "送信した問い合わせ一覧",
       },
       {
         path: "/company/inquiries/[id]",
         alias: "/company/inquiries/:id",
-        description: "Inquiry detail from company point of view",
+        description: "問い合わせ詳細（企業側）",
       },
     ],
   },
   {
-    title: "Users",
+    title: "ユーザー",
     routes: [
       {
         path: "/users/[id]",
         alias: "/users/:id",
-        description: "User profile (basic information)",
+        description: "ユーザープロフィール（基本情報）",
       },
     ],
   },
   {
-    title: "Analytics",
+    title: "分析",
     routes: [
       {
         path: "/analytics",
-        description: "Global metrics dashboard (creators, IPs, inquiries, payments)",
+        description: "全体指標ダッシュボード（クリエイター/IP/問い合わせ）",
       },
     ],
   },
@@ -100,10 +100,9 @@ export default function RoutesPage() {
   return (
     <section className="mx-auto max-w-5xl space-y-8 py-8">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-neutral-900">Sitemap</h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">サイトマップ</h1>
         <p className="text-sm text-neutral-600">
-          Internal overview of available PoC screens for IP Connect. Use this page to navigate
-          quickly during demos and development.
+          PoCで利用できる画面を一覧化しています。デモや開発時のショートカットとして使ってください。
         </p>
       </header>
 
