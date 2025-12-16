@@ -3,14 +3,14 @@ import { createServerClient } from "@/lib/supabase/server";
 type CountResult = { label: string; value: number };
 type SupabaseServerClient = Awaited<ReturnType<typeof createServerClient>>;
 type CountResponse = { count: number | null; error: { message?: string } | null };
-type SupabaseQueryBuilder = ReturnType<SupabaseServerClient["from"]>;
+type SupabaseCountQuery = ReturnType<ReturnType<SupabaseServerClient["from"]>["select"]>;
 
 async function safeCount(
   supabase: SupabaseServerClient,
   table: string,
-  filter?: (query: SupabaseQueryBuilder) => SupabaseQueryBuilder,
+  filter?: (query: SupabaseCountQuery) => SupabaseCountQuery,
 ): Promise<number> {
-  const baseQuery = supabase.from(table).select("*", { count: "exact", head: true }) as SupabaseQueryBuilder;
+  const baseQuery = supabase.from(table).select("*", { count: "exact", head: true });
 
   const finalQuery = filter ? filter(baseQuery) : baseQuery;
   const { count, error } = (await finalQuery) as CountResponse;

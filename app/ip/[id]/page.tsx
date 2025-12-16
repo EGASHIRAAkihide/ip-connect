@@ -6,7 +6,7 @@ import type { ChoreoMetadata, IPAsset, UserProfile, VoiceMetadata } from "@/lib/
 import { recordEvent } from "@/lib/events";
 
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 const audioExt = ["mp3", "wav", "aac", "ogg", "m4a"];
@@ -41,13 +41,14 @@ function describePrice(min?: number | null, max?: number | null) {
 }
 
 export default async function IPDetailPage({ params }: PageProps) {
+  const { id } = await params;
   const supabase = await createServerClient();
   const { user, role } = await getServerUserWithRole();
 
   const { data: asset, error } = await supabase
     .from("ip_assets")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single<IPAsset>();
 
   if (error || !asset) {

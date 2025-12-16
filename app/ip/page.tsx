@@ -3,13 +3,13 @@ import { createServerClient } from "@/lib/supabase/server";
 import type { IPAsset } from "@/lib/types";
 
 type PageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     type?: string;
     purpose?: string;
     ai?: string;
     region_scope?: string;
     price_max?: string;
-  };
+  }>;
 };
 
 const typeOptions = ["all", "voice", "choreography"] as const;
@@ -51,11 +51,12 @@ function labelForType(type?: string | null) {
 }
 
 export default async function PublicIPListing({ searchParams }: PageProps) {
-  const type = parseFilter(searchParams?.type, typeOptions, "all");
-  const purpose = parseFilter(searchParams?.purpose, purposeOptions, "all");
-  const aiAllowed = parseFilter(searchParams?.ai, aiOptions, "all");
-  const regionScope = parseFilter(searchParams?.region_scope, regionOptions, "all");
-  const priceMaxRaw = searchParams?.price_max;
+  const resolvedSearchParams = await searchParams;
+  const type = parseFilter(resolvedSearchParams?.type, typeOptions, "all");
+  const purpose = parseFilter(resolvedSearchParams?.purpose, purposeOptions, "all");
+  const aiAllowed = parseFilter(resolvedSearchParams?.ai, aiOptions, "all");
+  const regionScope = parseFilter(resolvedSearchParams?.region_scope, regionOptions, "all");
+  const priceMaxRaw = resolvedSearchParams?.price_max;
   const priceMax = priceMaxRaw ? Number(priceMaxRaw) : null;
 
   const supabase = await createServerClient();
