@@ -14,7 +14,7 @@ function SubmitButton() {
       disabled={pending}
       className="w-full rounded-full bg-neutral-900 px-4 py-2 font-semibold text-white disabled:opacity-60"
     >
-      {pending ? "Signing in…" : "Log in"}
+      {pending ? "ログイン中…" : "ログイン"}
     </button>
   );
 }
@@ -24,13 +24,13 @@ export default function LoginPage() {
 
   return (
     <section className="mx-auto mt-10 max-w-lg rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold text-neutral-900">Log in</h1>
+      <h1 className="text-2xl font-semibold text-neutral-900">ログイン</h1>
       <p className="mt-2 text-sm text-neutral-600">
-        Use the same email/password you registered with.
+        登録したメールアドレスとパスワードを入力してください。
       </p>
       <form action={formAction} className="mt-6 space-y-4">
         <label className="block text-sm font-medium text-neutral-800">
-          Email
+          メールアドレス
           <input
             type="email"
             name="email"
@@ -39,7 +39,7 @@ export default function LoginPage() {
           />
         </label>
         <label className="block text-sm font-medium text-neutral-800">
-          Password
+          パスワード
           <input
             type="password"
             name="password"
@@ -55,9 +55,9 @@ export default function LoginPage() {
         </p>
       )}
       <p className="mt-6 text-sm text-neutral-600">
-        Need an account?{" "}
+        アカウントをお持ちでない方は{" "}
         <Link href="/auth/register" className="text-neutral-900 underline">
-          Sign up
+          新規登録
         </Link>
       </p>
     </section>

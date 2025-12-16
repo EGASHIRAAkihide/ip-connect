@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { messages, type Language } from "./messages";
 
 type LanguageContextValue = {
@@ -16,15 +16,11 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(
 const STORAGE_KEY = "ip-connect-lang";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Language>("en");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const [lang, setLangState] = useState<Language>(() => {
+    if (typeof window === "undefined") return "en";
     const stored = window.localStorage.getItem(STORAGE_KEY) as Language | null;
-    if (stored && (stored === "en" || stored === "ja")) {
-      setLangState(stored);
-    }
-  }, []);
+    return stored === "ja" || stored === "en" ? stored : "en";
+  });
 
   const setLang = (next: Language) => {
     setLangState(next);

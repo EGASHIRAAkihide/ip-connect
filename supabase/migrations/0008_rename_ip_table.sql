@@ -1,6 +1,5 @@
--- Legacy migration: early prototypes used `ip_connect_assets`. The codebase and
--- 0001_init.sql now standardize on `ip_assets`, so this only renames when the old
--- table exists; otherwise it is a safe no-op. It also refreshes the inquiries FK.
+-- 0008_rename_ip_table.sql
+-- Legacy migration to ensure ip_connect_assets is renamed to ip_assets; safe no-op otherwise.
 
 do $$
 begin

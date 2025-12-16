@@ -6,25 +6,25 @@ type NavLink = { href: string; label: string };
 
 function buildNavLinks(role: string | null): NavLink[] {
   const base: NavLink[] = [
-    { href: "/", label: "Home" },
-    { href: "/ip", label: "Catalog" },
+    { href: "/", label: "ホーム" },
+    { href: "/ip", label: "IP一覧" },
   ];
 
   if (role === "creator") {
     return [
       ...base,
-      { href: "/creator/dashboard", label: "Creator Dashboard" },
-      { href: "/creator/ip/new", label: "New IP" },
-      { href: "/creator/inquiries", label: "Inbox" },
-      { href: "/analytics", label: "Analytics" },
+      { href: "/creator/dashboard", label: "クリエイター" },
+      { href: "/creator/ip/new", label: "IP登録" },
+      { href: "/creator/inquiries", label: "問い合わせ受信箱" },
+      { href: "/analytics", label: "分析" },
     ];
   }
 
   if (role === "company") {
     return [
       ...base,
-      { href: "/company/inquiries", label: "My inquiries" },
-      { href: "/analytics", label: "Analytics" },
+      { href: "/company/inquiries", label: "自社の問い合わせ" },
+      { href: "/analytics", label: "分析" },
     ];
   }
 
@@ -35,6 +35,8 @@ export default async function MainNav() {
   const { user, role } = await getServerUserWithRole();
   const navLinks = buildNavLinks(role);
   const profileHref = user ? `/users/${user.id}` : null;
+  const roleLabel =
+    role === "creator" ? "クリエイター" : role === "company" ? "企業" : "未ログイン";
 
   return (
     <header className="border-b border-neutral-200 bg-white text-sm text-neutral-900">
@@ -44,7 +46,7 @@ export default async function MainNav() {
             IP Connect
           </Link>
           <span className="hidden text-xs text-neutral-500 sm:inline">
-            Choreography & Voice
+            振付 / 声 IP
           </span>
         </div>
 
@@ -67,26 +69,26 @@ export default async function MainNav() {
                 href="/auth/login"
                 className="rounded-full px-3 py-1 text-neutral-800 underline-offset-4 hover:bg-neutral-100 hover:underline"
               >
-                Login
+                ログイン
               </Link>
               <Link
                 href="/auth/register"
                 className="rounded-full border border-neutral-900 px-3 py-1 text-xs font-semibold text-neutral-900 hover:bg-neutral-900 hover:text-white"
               >
-                Register
+                新規登録
               </Link>
             </>
           ) : (
             profileHref && (
               <div className="flex items-center gap-2">
                 <span className="hidden rounded-full bg-neutral-100 px-3 py-1 text-[11px] uppercase tracking-wide text-neutral-600 sm:inline">
-                  {role ?? "user"}
+                  {roleLabel}
                 </span>
                 <Link
                   href={profileHref}
                   className="rounded-full border border-neutral-300 px-3 py-1 text-xs text-neutral-800 hover:border-neutral-900"
                 >
-                  My profile
+                  マイページ
                 </Link>
               </div>
             )
@@ -111,13 +113,13 @@ export default async function MainNav() {
                 href="/auth/login"
                 className="underline underline-offset-3"
               >
-                Login
+                ログイン
               </Link>
               <Link
                 href="/auth/register"
                 className="underline underline-offset-3"
               >
-                Register
+                新規登録
               </Link>
             </>
           ) : (
@@ -126,7 +128,7 @@ export default async function MainNav() {
                 href={profileHref}
                 className="underline underline-offset-3"
               >
-                My profile
+                マイページ
               </Link>
             )
           )}

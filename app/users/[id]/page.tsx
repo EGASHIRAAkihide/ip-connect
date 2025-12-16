@@ -25,7 +25,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!userId) {
-        setError("Profile not found.");
+        setError("プロフィールが見つかりません。");
         setLoading(false);
         return;
       }
@@ -40,7 +40,7 @@ export default function UserProfilePage() {
         .single<UserProfile>();
 
       if (error || !data) {
-        setError("Profile not found.");
+        setError("プロフィールが見つかりません。");
         setLoading(false);
         return;
       }
@@ -66,21 +66,21 @@ export default function UserProfilePage() {
     };
 
     loadProfile();
-  }, [userId]);
+  }, [supabase, userId]);
 
   if (loading) {
-    return <p className="mt-10 text-sm text-neutral-600">Loading profile…</p>;
+    return <p className="mt-10 text-sm text-neutral-600">プロフィールを読み込み中…</p>;
   }
 
   if (error || !profile) {
     return (
       <div className="mt-10 space-y-4 text-neutral-800">
-        <p>{error ?? "Profile not found."}</p>
+        <p>{error ?? "プロフィールが見つかりません。"}</p>
         <button
           onClick={() => router.push("/ip")}
           className="rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
         >
-          Back to IP catalog
+          IP一覧へ戻る
         </button>
       </div>
     );
@@ -88,55 +88,54 @@ export default function UserProfilePage() {
 
   const heading =
     profile.role === "creator"
-      ? "Creator profile"
+      ? "クリエイタープロフィール"
       : profile.role === "company"
-        ? "Company profile"
-        : "User profile";
+        ? "企業プロフィール"
+        : "ユーザープロフィール";
 
   return (
     <section className="mx-auto mt-8 max-w-3xl space-y-6 rounded-2xl border border-neutral-200 bg-white p-8">
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.25em] text-neutral-500">
-          Public profile
+          公開プロフィール
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold text-neutral-900">{heading}</h1>
           {viewerIsOwner && (
             <span className="rounded-full border border-neutral-900 px-3 py-1 text-xs uppercase tracking-wide text-neutral-900">
-              This is you
+              自分のアカウント
             </span>
           )}
         </div>
         <p className="text-sm text-neutral-600">{profile.email}</p>
-        <p className="text-sm text-neutral-600">Role: {profile.role}</p>
+        <p className="text-sm text-neutral-600">ロール: {profile.role}</p>
       </header>
 
       {profile.role === "company" ? (
         <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
           <h2 className="text-base font-semibold text-neutral-900">
-            About this company
+            企業について
           </h2>
           <p className="text-sm text-neutral-700">
-            This company uses IP Connect to discover creators and request
-            licensing deals. Public company bios will appear here in future
-            versions.
+            この企業はIP Connectを使ってクリエイターを探し、ライセンス利用を相談しています。
+            企業紹介は今後ここに表示されます。
           </p>
           <Link
             href="/ip"
             className="inline-flex rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
           >
-            Browse IP catalog
+            IPを探す
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="space-y-2 rounded-2xl border border-neutral-200 bg-white p-6">
             <h2 className="text-base font-semibold text-neutral-900">
-              Published IP assets
+              公開中のIP
             </h2>
             {assets.length === 0 ? (
               <p className="text-sm text-neutral-700">
-                This creator has not published any IP assets yet.
+                このクリエイターはまだIPを公開していません。
               </p>
             ) : (
               <ul className="space-y-3">
@@ -156,8 +155,8 @@ export default function UserProfilePage() {
                       </div>
                       <span className="text-sm text-neutral-700">
                         {asset.price_min && asset.price_max
-                          ? `$${asset.price_min}–$${asset.price_max}`
-                          : "Price TBD"}
+                          ? `¥${asset.price_min.toLocaleString()}〜¥${asset.price_max.toLocaleString()}`
+                          : "価格未設定"}
                       </span>
                     </div>
                     {asset.description && (
@@ -169,7 +168,7 @@ export default function UserProfilePage() {
                       href={`/ip/${asset.id}`}
                       className="mt-3 inline-flex text-sm text-neutral-900 underline"
                     >
-                      View asset
+                      IP詳細を見る
                     </Link>
                   </li>
                 ))}

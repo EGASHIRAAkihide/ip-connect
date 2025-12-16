@@ -1,14 +1,14 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import type { InquiryStatus } from "@/lib/types";
 
 type InquiryWithAsset = {
   id: string;
   status: string | null;
-  payment_status: string | null;
   ip_assets:
-    | { creator_id: string }
-    | { creator_id: string }[]
+    | { created_by: string }
+    | { created_by: string }[]
     | null;
 };
 
@@ -23,15 +23,14 @@ async function verifyCreator(
       `
         id,
         status,
-        payment_status,
-        ip_assets!inner(creator_id)
+        ip_assets!inner(created_by)
       `,
     )
     .eq("id", inquiryId)
     .single<InquiryWithAsset>();
 
   if (error || !data) {
-    throw new Error("Inquiry not found");
+    throw new Error("問い合わせが見つかりません。");
   }
 
   let assetCreatorId: string | null = null;
@@ -40,42 +39,37 @@ async function verifyCreator(
   if (ipAssets) {
     if (Array.isArray(ipAssets)) {
       if (ipAssets.length > 0) {
-        assetCreatorId = ipAssets[0]?.creator_id ?? null;
+        assetCreatorId = ipAssets[0]?.created_by ?? null;
       }
     } else {
-      assetCreatorId = ipAssets.creator_id ?? null;
+      assetCreatorId = ipAssets.created_by ?? null;
     }
   }
 
   if (assetCreatorId !== userId) {
-    throw new Error("Forbidden");
+    throw new Error("権限がありません。");
   }
 
   return data;
 }
 
-export async function approveInquiry(inquiryId: string) {
+async function updateStatus(inquiryId: string, nextStatus: InquiryStatus) {
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    throw new Error("認証されていません。");
   }
 
   const inquiry = await verifyCreator(supabase, inquiryId, user.id);
-  const previousStatus = inquiry.status ?? "pending";
-  const nextPaymentStatus =
-    inquiry.payment_status === "unpaid"
-      ? "pending"
-      : inquiry.payment_status;
+  const previousStatus = (inquiry.status as InquiryStatus | null) ?? "new";
 
   const { error: updateError } = await supabase
     .from("inquiries")
     .update({
-      status: "approved",
-      payment_status: nextPaymentStatus,
+      status: nextStatus,
       updated_at: new Date().toISOString(),
     })
     .eq("id", inquiryId);
@@ -89,103 +83,26 @@ export async function approveInquiry(inquiryId: string) {
     .insert({
       inquiry_id: inquiryId,
       actor_id: user.id,
-      event_type: "approved",
+      event_type: nextStatus,
       payload: {
         previous_status: previousStatus,
-        new_status: "approved",
-        previous_payment_status: inquiry.payment_status,
-        new_payment_status: nextPaymentStatus,
+        new_status: nextStatus,
       },
     });
 
   if (eventError) {
     throw new Error(eventError.message);
   }
+}
+
+export async function moveInquiryToReview(inquiryId: string) {
+  return updateStatus(inquiryId, "in_review");
+}
+
+export async function acceptInquiry(inquiryId: string) {
+  return updateStatus(inquiryId, "accepted");
 }
 
 export async function rejectInquiry(inquiryId: string) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const inquiry = await verifyCreator(supabase, inquiryId, user.id);
-  const previousStatus = inquiry.status ?? "pending";
-
-  const { error: updateError } = await supabase
-    .from("inquiries")
-    .update({
-      status: "rejected",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", inquiryId);
-
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
-
-  const { error: eventError } = await supabase
-    .from("inquiry_events")
-    .insert({
-      inquiry_id: inquiryId,
-      actor_id: user.id,
-      event_type: "rejected",
-      payload: {
-        previous_status: previousStatus,
-        new_status: "rejected",
-        previous_payment_status: inquiry.payment_status,
-        new_payment_status: inquiry.payment_status,
-      },
-    });
-
-  if (eventError) {
-    throw new Error(eventError.message);
-  }
-}
-
-export async function markInquiryPaid(inquiryId: string) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const inquiry = await verifyCreator(supabase, inquiryId, user.id);
-  const previousPaymentStatus = inquiry.payment_status ?? "unpaid";
-
-  const { error: updateError } = await supabase
-    .from("inquiries")
-    .update({
-      status: "approved",
-      payment_status: "paid",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", inquiryId);
-
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
-
-  const { error: eventError } = await supabase
-    .from("inquiry_events")
-    .insert({
-      inquiry_id: inquiryId,
-      actor_id: user.id,
-      event_type: "payment_marked_paid",
-      payload: {
-        previous_payment_status: previousPaymentStatus,
-        new_payment_status: "paid",
-      },
-    });
-
-  if (eventError) {
-    throw new Error(eventError.message);
-  }
+  return updateStatus(inquiryId, "rejected");
 }

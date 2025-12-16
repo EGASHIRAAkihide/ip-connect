@@ -1,220 +1,103 @@
-'use client';
-
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/client";
-import type { Inquiry, InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
+import { notFound, redirect } from "next/navigation";
+import { createServerClient } from "@/lib/supabase/server";
+import { getServerUserWithRole } from "@/lib/auth";
+import type { InquiryStatus, IPAsset, UserProfile } from "@/lib/types";
 
-type EventStatus =
-  | InquiryStatus
-  | "payment_invoiced"
-  | "payment_paid_simulated";
-
-type InquiryEvent = {
-  id: string;
-  inquiry_id: string;
-  actor_id: string;
-  actor_role: "creator" | "company";
-  from_status: EventStatus | null;
-  to_status: EventStatus;
-  note: string | null;
-  created_at: string;
+type PageProps = {
+  params: { id: string };
 };
 
-const statusStyles: Record<
-  EventStatus,
-  { bg: string; text: string; label: string }
-> = {
-  pending: {
-    bg: "bg-neutral-100",
-    text: "text-neutral-700",
-    label: "Pending",
-  },
-  approved: {
-    bg: "bg-neutral-900",
-    text: "text-white",
-    label: "Approved",
-  },
-  rejected: {
-    bg: "bg-neutral-200",
-    text: "text-neutral-700",
-    label: "Rejected",
-  },
-  payment_invoiced: {
-    bg: "bg-neutral-100",
-    text: "text-neutral-700",
-    label: "Payment invoiced",
-  },
-  payment_paid_simulated: {
-    bg: "bg-neutral-900",
-    text: "text-white",
-    label: "Payment (simulated)",
-  },
+const PURPOSE_LABELS: Record<string, string> = {
+  ads: "広告",
+  sns: "SNS",
+  app: "アプリ",
+  education: "教育",
+  ai: "AI",
 };
 
-const paymentStyles: Record<
-"unpaid" | "invoiced" | "paid_simulated" | "paid",
-{ bg: string; text: string; label: string }
-> = {
-unpaid: {
-  bg: "bg-neutral-100",
-  text: "text-neutral-700",
-  label: "Unpaid",
-},
-invoiced: {
-  bg: "bg-neutral-900",
-  text: "text-white",
-  label: "Invoiced",
-},
-paid_simulated: {
-  bg: "bg-neutral-900",
-  text: "text-white",
-  label: "Paid (simulated)",
-},
-paid: {
-  bg: "bg-neutral-900",
-  text: "text-white",
-  label: "Paid",
-},
+const statusStyles: Record<InquiryStatus, { bg: string; text: string; label: string }> = {
+  new: { bg: "bg-neutral-100", text: "text-neutral-700", label: "未対応" },
+  in_review: { bg: "bg-amber-100", text: "text-amber-800", label: "検討中" },
+  accepted: { bg: "bg-emerald-100", text: "text-emerald-800", label: "承認" },
+  rejected: { bg: "bg-rose-100", text: "text-rose-700", label: "却下" },
 };
 
-export default function CompanyInquiryDetailPage() {
-  const router = useRouter();
-  const params = useParams<{ id: string }>();
-  const inquiryId = useMemo(() => {
-    const raw = params?.id;
-    if (!raw) return null;
-    return Array.isArray(raw) ? raw[0] : raw;
-  }, [params]);
-  const supabase = useMemo(() => createBrowserClient(), []);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [inquiry, setInquiry] = useState<Inquiry | null>(null);
-  const [asset, setAsset] = useState<IPAsset | null>(null);
-  const [creator, setCreator] = useState<UserProfile | null>(null);
-  const [events, setEvents] = useState<InquiryEvent[]>([]);
-
-  useEffect(() => {
-    const loadInquiry = async () => {
-      if (!inquiryId) {
-        setError("Inquiry not found.");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace("/auth/login");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .single<UserProfile>();
-
-      if (!profile) {
-        router.replace("/auth/register");
-        return;
-      }
-
-      if (profile.role !== "company") {
-        router.replace("/ip");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("inquiries")
-        .select("*")
-        .eq("id", inquiryId)
-        .eq("company_id", profile.id)
-        .single<Inquiry>();
-
-      if (error || !data) {
-        setError("Inquiry not found.");
-        setLoading(false);
-        return;
-      }
-
-      setInquiry(data);
-
-      const [{ data: assetData }, { data: creatorData }] = await Promise.all([
-        supabase
-          .from("ip_assets")
-          .select("*")
-          .eq("id", data.ip_id)
-          .single<IPAsset>(),
-        supabase
-          .from("users")
-          .select("*")
-          .eq("id", data.creator_id)
-          .single<UserProfile>(),
-      ]);
-
-      const { data: eventsData } = await supabase
-        .from("inquiry_events")
-        .select("*")
-        .eq("inquiry_id", data.id)
-        .order("created_at", { ascending: false });
-
-      setAsset(assetData ?? null);
-      setCreator(creatorData ?? null);
-      setEvents((eventsData as InquiryEvent[]) ?? []);
-      setLoading(false);
-    };
-
-    loadInquiry();
-  }, [inquiryId, router]);
-
-  if (loading) {
-    return <p className="mt-10 text-sm text-neutral-600">Loading inquiry…</p>;
+export default async function CompanyInquiryDetailPage({ params }: PageProps) {
+  const { user, role } = await getServerUserWithRole();
+  if (!user) {
+    redirect("/auth/login");
+  }
+  if (role !== "company") {
+    redirect("/ip");
   }
 
-  if (error || !inquiry) {
-    return (
-      <div className="mt-10 space-y-4 text-neutral-800">
-        <p>{error ?? "Inquiry not found."}</p>
-        <button
-          onClick={() => router.push("/company/inquiries")}
-          className="rounded-full border border-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
-        >
-          Back to inquiries
-        </button>
-      </div>
-    );
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select(
+      `
+        id,
+        asset_id,
+        status,
+        purpose,
+        media,
+        region,
+        period_start,
+        period_end,
+        secondary_use,
+        derivative,
+        ai_use,
+        budget_min,
+        budget_max,
+        message,
+        created_at,
+        ip_assets:asset_id (
+          id,
+          title,
+          type,
+          asset_type
+        ),
+        creator:creator_user_id (
+          id,
+          email,
+          role
+        )
+      `,
+    )
+    .eq("id", params.id)
+    .eq("company_user_id", user.id)
+    .single();
+
+  if (error || !data) {
+    return notFound();
   }
 
-  const statusStyle = statusStyles[inquiry.status];
-  const paymentStyle = paymentStyles[inquiry.payment_status];
-  const createdAt = inquiry.created_at
-    ? new Date(inquiry.created_at).toLocaleString()
-    : "—";
-  const updatedAt = inquiry.updated_at
-    ? new Date(inquiry.updated_at).toLocaleString()
-    : null;
+  const asset = Array.isArray(data.ip_assets)
+    ? (data.ip_assets[0] as IPAsset | undefined)
+    : (data.ip_assets as IPAsset | null);
+  const creator = Array.isArray(data.creator)
+    ? (data.creator[0] as UserProfile | undefined)
+    : (data.creator as UserProfile | null);
+
+  const createdAt = data.created_at ? new Date(data.created_at).toLocaleString() : "—";
+  const statusStyle = statusStyles[data.status as InquiryStatus];
+  const assetTypeRaw = asset?.type ?? asset?.asset_type ?? null;
+  const assetTypeLabel = assetTypeRaw === "voice" ? "声" : assetTypeRaw === "choreography" ? "振付" : "IP";
 
   return (
     <section className="mx-auto max-w-3xl space-y-6 py-8">
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.25em] text-neutral-500">
-          Company dashboard
+          企業ダッシュボード
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-semibold text-neutral-900">Your inquiry</h1>
+            <h1 className="text-3xl font-semibold text-neutral-900">送信した問い合わせ</h1>
             <p className="text-sm text-neutral-600">
-              {asset?.category ?? "IP asset"}
+              {assetTypeLabel}
             </p>
-            <p className="text-lg text-neutral-800">{asset?.title ?? "Untitled asset"}</p>
+            <p className="text-lg text-neutral-800">{asset?.title ?? "タイトル未設定"}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <span
@@ -222,17 +105,12 @@ export default function CompanyInquiryDetailPage() {
             >
               {statusStyle.label}
             </span>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
-            >
-              Payment: {paymentStyle.label}
-            </span>
           </div>
         </div>
       </header>
 
       <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6">
-        <h2 className="text-base font-semibold text-neutral-900">Creator</h2>
+        <h2 className="text-base font-semibold text-neutral-900">クリエイター</h2>
         {creator ? (
           <Link
             href={`/users/${creator.id}`}
@@ -241,102 +119,69 @@ export default function CompanyInquiryDetailPage() {
             {creator.email}
           </Link>
         ) : (
-          <p className="text-sm text-neutral-700">Unknown creator</p>
+          <p className="text-sm text-neutral-700">クリエイター情報なし</p>
         )}
       </div>
 
       <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6">
-        <h2 className="text-base font-semibold text-neutral-900">Request details</h2>
+        <h2 className="text-base font-semibold text-neutral-900">問い合わせ内容</h2>
         <dl className="grid gap-4 text-sm text-neutral-700 md:grid-cols-2">
           <div>
-            <dt className="text-neutral-500">Purpose</dt>
-            <dd>{inquiry.purpose ?? "Not specified"}</dd>
+            <dt className="text-neutral-500">利用目的</dt>
+            <dd>{data.purpose ? PURPOSE_LABELS[data.purpose] ?? data.purpose : "未記入"}</dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Region</dt>
-            <dd>{inquiry.region ?? "Not specified"}</dd>
+            <dt className="text-neutral-500">媒体</dt>
+            <dd>{data.media ?? "未記入"}</dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Usage period</dt>
-            <dd>{inquiry.period ?? "Not specified"}</dd>
+            <dt className="text-neutral-500">利用地域</dt>
+            <dd>{data.region ?? "未記入"}</dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Budget</dt>
+            <dt className="text-neutral-500">利用期間</dt>
             <dd>
-              {inquiry.budget
-                ? `$${inquiry.budget.toLocaleString()}`
-                : "Not specified"}
+              {data.period_start ? data.period_start : "—"}{" "}
+              {data.period_end ? `~ ${data.period_end}` : ""}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">AI利用</dt>
+            <dd>{data.ai_use === null ? "—" : data.ai_use ? "可" : "不可"}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">二次利用</dt>
+            <dd>
+              {data.secondary_use === null ? "—" : data.secondary_use ? "可" : "不可"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">改変</dt>
+            <dd>{data.derivative === null ? "—" : data.derivative ? "可" : "不可"}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">予算</dt>
+            <dd>
+              {data.budget_min || data.budget_max
+                ? `${data.budget_min ? `¥${Number(data.budget_min).toLocaleString()}` : "—"} ~ ${
+                    data.budget_max ? `¥${Number(data.budget_max).toLocaleString()}` : "—"
+                  }`
+                : "未記入"}
             </dd>
           </div>
         </dl>
-        {inquiry.message && (
+        {data.message && (
           <div>
-            <dt className="text-sm font-medium text-neutral-700">Message</dt>
+            <dt className="text-sm font-medium text-neutral-700">メッセージ</dt>
             <p className="mt-2 whitespace-pre-line text-sm text-neutral-800">
-              {inquiry.message}
+              {data.message}
             </p>
           </div>
-        )}
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-neutral-900">
-              Payment status
-            </h2>
-            <p className="text-sm text-neutral-600">
-              This flow is simulated for the PoC; no real payments occur.
-            </p>
-          </div>
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${paymentStyle.bg} ${paymentStyle.text}`}
-          >
-            {paymentStyle.label}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6">
-        <h2 className="text-base font-semibold text-neutral-900">Status history</h2>
-        {events.length === 0 ? (
-          <p className="text-sm text-neutral-600">
-            No status changes recorded yet.
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {events.map((event) => {
-              const badge = statusStyles[event.to_status];
-              const timestamp = new Date(event.created_at).toLocaleString();
-              return (
-                <li
-                  key={event.id}
-                  className="rounded-xl border border-neutral-200 bg-white p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${badge.bg} ${badge.text}`}
-                    >
-                      {badge.label}
-                    </span>
-                    <p className="text-xs uppercase tracking-wide text-neutral-500">
-                      {event.actor_role}
-                    </p>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-700">{timestamp}</p>
-                  {event.note && (
-                    <p className="text-sm text-neutral-600">{event.note}</p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
         )}
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 space-y-1">
-        <p>Submitted: {createdAt}</p>
-        {updatedAt && <p>Updated: {updatedAt}</p>}
+        <p>送信日時: {createdAt}</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -344,13 +189,13 @@ export default function CompanyInquiryDetailPage() {
           href="/company/inquiries"
           className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-100"
         >
-          Back to inquiries
+          問い合わせ一覧へ戻る
         </Link>
         <Link
-          href={`/ip/${inquiry.ip_id}`}
+          href={`/ip/${data.asset_id}`}
           className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
         >
-          View IP asset
+          IP詳細を見る
         </Link>
       </div>
     </section>
