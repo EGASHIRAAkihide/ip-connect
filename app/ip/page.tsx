@@ -9,6 +9,9 @@ type PageProps = {
     ai?: string;
     region_scope?: string;
     price_max?: string;
+    q?: string;
+    lang?: string;
+    speakers?: string;
   }>;
 };
 
@@ -16,6 +19,8 @@ const typeOptions = ["all", "voice", "choreography"] as const;
 const purposeOptions = ["all", "ads", "sns", "app", "education", "ai"] as const;
 const aiOptions = ["all", "true", "false"] as const;
 const regionOptions = ["all", "jp", "global"] as const;
+const langOptions = ["all", "ja", "en", "auto"] as const;
+const speakersOptions = ["all", "solo", "multi"] as const;
 const purposeLabels: Record<(typeof purposeOptions)[number], string> = {
   all: "すべて",
   ads: "広告",
@@ -58,6 +63,9 @@ export default async function PublicIPListing({ searchParams }: PageProps) {
   const regionScope = parseFilter(resolvedSearchParams?.region_scope, regionOptions, "all");
   const priceMaxRaw = resolvedSearchParams?.price_max;
   const priceMax = priceMaxRaw ? Number(priceMaxRaw) : null;
+  const q = resolvedSearchParams?.q?.trim() ?? "";
+  const lang = parseFilter(resolvedSearchParams?.lang, langOptions, "all");
+  const speakers = parseFilter(resolvedSearchParams?.speakers, speakersOptions, "all");
 
   const supabase = await createServerClient();
   let query = supabase
@@ -82,6 +90,20 @@ export default async function PublicIPListing({ searchParams }: PageProps) {
   }
   if (Number.isFinite(priceMax)) {
     query = query.or(`price_min.lte.${priceMax},price_min.is.null`);
+  }
+  if (q) {
+    const like = `%${q}%`;
+    query = query.or(
+      `title.ilike.${like},description.ilike.${like},ai_meta->>transcript.ilike.${like}`,
+    );
+  }
+  if (lang !== "all") {
+    query = query.eq("ai_meta->>language", lang);
+  }
+  if (speakers === "solo") {
+    query = query.eq("ai_meta->>speakers_count", "1");
+  } else if (speakers === "multi") {
+    query = query.gte("ai_meta->>speakers_count", 2 as any);
   }
 
   const { data, error } = await query;
@@ -112,6 +134,15 @@ export default async function PublicIPListing({ searchParams }: PageProps) {
         </div>
 
         <form className="grid gap-3 rounded-2xl border border-neutral-200 bg-white p-4 md:grid-cols-5">
+          <label className="md:col-span-2 flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            キーワード
+            <input
+              className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
+              name="q"
+              defaultValue={q}
+              placeholder="タイトル / 説明 / transcript を検索"
+            />
+          </label>
           <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
             種類
             <select
@@ -166,6 +197,32 @@ export default async function PublicIPListing({ searchParams }: PageProps) {
                   {option === "all" ? "すべて" : option.toUpperCase()}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            言語
+            <select
+              className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
+              name="lang"
+              defaultValue={lang}
+            >
+              {langOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option === "all" ? "すべて" : option.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
+            話者
+            <select
+              className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
+              name="speakers"
+              defaultValue={speakers}
+            >
+              <option value="all">すべて</option>
+              <option value="solo">1人</option>
+              <option value="multi">複数</option>
             </select>
           </label>
           <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
@@ -238,6 +295,20 @@ export default async function PublicIPListing({ searchParams }: PageProps) {
                 {asset.description && (
                   <p className="text-sm text-neutral-700 line-clamp-2">{asset.description}</p>
                 )}
+                <div className="flex flex-wrap gap-2 text-xs text-neutral-600">
+                  {asset.ai_meta?.language && <span className="rounded-full bg-neutral-100 px-2 py-0.5">Lang: {asset.ai_meta.language}</span>}
+                  {asset.ai_meta?.speakers_count && (
+                    <span className="rounded-full bg-neutral-100 px-2 py-0.5">
+                      Speakers: {asset.ai_meta.speakers_count}
+                    </span>
+                  )}
+                  {Array.isArray(asset.ai_meta?.keywords) &&
+                    (asset.ai_meta.keywords as string[]).slice(0, 3).map((kw) => (
+                      <span key={kw} className="rounded-full bg-neutral-50 px-2 py-0.5">
+                        {kw}
+                      </span>
+                    ))}
+                </div>
 
                 <div className="flex flex-wrap gap-2">
                   {purposes.map((p) => (

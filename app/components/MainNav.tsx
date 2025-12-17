@@ -32,11 +32,21 @@ function buildNavLinks(role: string | null): NavLink[] {
 }
 
 export default async function MainNav() {
-  const { user, role } = await getServerUserWithRole();
+  const { user, role, isAdmin } = await getServerUserWithRole();
+  const enableLab = process.env.ENABLE_LAB === "true";
   const navLinks = buildNavLinks(role);
   const profileHref = user ? `/users/${user.id}` : null;
   const roleLabel =
     role === "creator" ? "クリエイター" : role === "company" ? "企業" : "未ログイン";
+
+  const adminLinks: NavLink[] = [];
+  if (isAdmin) {
+    adminLinks.push({ href: "/admin/dev", label: "Admin Dev" });
+    if (enableLab) {
+      adminLinks.push({ href: "/lab", label: "Lab" });
+      adminLinks.push({ href: "/lab/guide", label: "Lab Guide" });
+    }
+  }
 
   return (
     <header className="border-b border-neutral-200 bg-white text-sm text-neutral-900">
@@ -63,6 +73,24 @@ export default async function MainNav() {
         </div>
 
         <div className="flex items-center gap-2">
+          {adminLinks.length > 0 && (
+            <details className="relative hidden md:block">
+              <summary className="list-none cursor-pointer rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-900 hover:bg-neutral-100">
+                Admin
+              </summary>
+              <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
+                {adminLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-3 py-2 text-sm text-neutral-800 hover:bg-neutral-50"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          )}
           {!user ? (
             <>
               <Link
@@ -132,6 +160,16 @@ export default async function MainNav() {
               </Link>
             )
           )}
+          {adminLinks.length > 0 &&
+            adminLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full border border-transparent px-3 py-1 underline underline-offset-3 hover:border-neutral-200"
+              >
+                {link.label.replace("Admin ", "").replace("Lab ", "Lab ")}
+              </Link>
+            ))}
         </div>
       </div>
     </header>

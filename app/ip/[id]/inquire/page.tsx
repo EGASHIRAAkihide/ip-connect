@@ -74,6 +74,18 @@ export default function InquiryPage() {
         setStatusText(error?.message ?? "IPが見つかりません。");
         return;
       }
+      if (assetData.status === "draft") {
+        setStatusText("IPが公開されていません。");
+        return;
+      }
+      if (assetData.ai_meta) {
+        const keywords = Array.isArray(assetData.ai_meta.keywords)
+          ? (assetData.ai_meta.keywords as string[]).slice(0, 5).join(", ")
+          : "";
+        const lang = assetData.ai_meta.language ? `言語: ${assetData.ai_meta.language}\n` : "";
+        const template = `用途: （例: 広告 / SNS / アプリ）\n希望尺: （例: 15秒 / 30秒）\n利用期間: （開始日〜終了日）\n配信地域: （例: JP / Global）\nキーワード: ${keywords}\n${lang}`;
+        setMessage(template);
+      }
       setAsset(assetData);
     };
 

@@ -44,6 +44,13 @@ export type IPAsset = {
   derivative_allowed?: boolean | null;
   status?: "published" | "draft";
   tags?: string[] | null;
+  ai_meta?: {
+    language?: string | null;
+    speakers_count?: number | null;
+    keywords?: string[] | null;
+    transcript?: string | null;
+  };
+  lab_run_id?: string | null;
   meta?: VoiceMetadata | ChoreoMetadata | null;
   metadata?: VoiceMetadata | ChoreoMetadata | null;
   terms: {
@@ -102,3 +109,19 @@ export const INQUIRY_PURPOSES = [
 ] as const;
 
 export const REGION_OPTIONS = ["jp", "global"] as const;
+
+export type LabRunStatus = "queued" | "running" | "success" | "failed";
+export type LabRunType = "asr" | "diarization" | "speaker_embedding" | "speaker_compare" | "asr_diarize";
+
+export type LabRun = {
+  id: string;
+  type: LabRunType;
+  status: LabRunStatus;
+  input_bucket: string;
+  input_path: string;
+  output_json: Record<string, unknown> | null;
+  duration_ms: number | null;
+  error_message: string | null;
+  created_by: string;
+  created_at: string;
+};

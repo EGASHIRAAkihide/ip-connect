@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { getServerUserWithRole } from "@/lib/auth";
 import type { ChoreoMetadata, IPAsset, UserProfile, VoiceMetadata } from "@/lib/types";
 import { recordEvent } from "@/lib/events";
+import { AiMetaPanel } from "./AiMetaPanel";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -55,6 +56,10 @@ export default async function IPDetailPage({ params }: PageProps) {
     return notFound();
   }
 
+  if (asset.status === "draft" && role === "company") {
+    return notFound();
+  }
+
   await recordEvent("asset_view", {
     userId: user?.id ?? null,
     assetId: asset.id,
@@ -84,6 +89,7 @@ export default async function IPDetailPage({ params }: PageProps) {
 
   return (
     <section className="space-y-6 py-8">
+      <AiMetaPanel meta={asset.ai_meta as any} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-wide text-neutral-500">
