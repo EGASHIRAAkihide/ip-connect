@@ -111,7 +111,19 @@ export const INQUIRY_PURPOSES = [
 export const REGION_OPTIONS = ["jp", "global"] as const;
 
 export type LabRunStatus = "queued" | "running" | "success" | "failed";
-export type LabRunType = "asr" | "diarization" | "speaker_embedding" | "speaker_compare" | "asr_diarize";
+export type LabRunType =
+  | "asr"
+  | "diarization"
+  | "speaker_embedding"
+  | "speaker_compare"
+  | "asr_diarize"
+  | "choreo_pose_extract"
+  | "choreo_compare"
+  | "choreo_compare_dtw"
+  | "choreo_segment"
+  | "choreo_phrase_compare"
+  | "multimodal_align"
+  | "multimodal_compare";
 
 export type LabRun = {
   id: string;

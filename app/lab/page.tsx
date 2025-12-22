@@ -25,64 +25,42 @@ export default async function LabHomePage() {
     <section className="mx-auto max-w-4xl space-y-6 py-8">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Admin Only</p>
-        <h1 className="text-3xl font-semibold text-neutral-900">AI Lab（Audio）</h1>
+        <h1 className="text-3xl font-semibold text-neutral-900">AI Lab</h1>
         <p className="text-sm text-neutral-600">
-          Whisperを用いたASR実験環境です。アップロード音声の文字起こしと実行ログを管理します。
+          カテゴリを選んで実験メニューに進んでください。管理者限定のPoC機能です。
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Link
-          href="/lab/audio/asr"
-          className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
+          href="/lab/audio"
+          className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Audio</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-900">ASR（文字起こし）</h2>
-          <p className="mt-2 text-sm text-neutral-700">音声ファイルをアップロードしてWhisperで文字起こしを実行します。</p>
-        </Link>
-
-        <Link
-          href="/lab/audio/diarize"
-          className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Audio</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-900">話者ダイアリゼーション</h2>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Category</p>
+          <h2 className="mt-1 text-2xl font-semibold text-neutral-900">Audio Lab</h2>
           <p className="mt-2 text-sm text-neutral-700">
-            音声を話者ごとに区間分割します（本人一致を保証しない参考情報）。
+            Whisper や pyannote を用いた音声系の実験メニューへ。
           </p>
         </Link>
 
         <Link
-          href="/lab/audio/embed"
-          className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
+          href="/lab/choreo"
+          className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Audio</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-900">話者埋め込み</h2>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Category</p>
+          <h2 className="mt-1 text-2xl font-semibold text-neutral-900">Choreo Lab</h2>
           <p className="mt-2 text-sm text-neutral-700">
-            音声から話者埋め込みベクトルを生成します（本人一致を保証しない参考情報）。
+            MediaPipe Pose などの振付系実験メニューへ。
           </p>
         </Link>
 
         <Link
-          href="/lab/audio/compare"
+          href="/lab/multimodal"
           className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
         >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Audio</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-900">話者比較 (A/B)</h2>
-          <p className="mt-2 text-sm text-neutral-700">
-            2つの音声の話者埋め込み類似度を計算します（本人一致を保証しない参考値）。
-          </p>
-        </Link>
-
-        <Link
-          href="/lab/audio/asr-diarize"
-          className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-[2px] hover:shadow-md"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Audio</p>
-          <h2 className="mt-1 text-xl font-semibold text-neutral-900">ASR × 話者推定</h2>
-          <p className="mt-2 text-sm text-neutral-700">
-            文字起こしと話者ダイアリゼーションを同時実行し、セグメントに推定話者ラベルを付与します（参考情報）。
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Multimodal</p>
+          <h2 className="mt-1 text-xl font-semibold text-neutral-900">Audio × Choreo</h2>
+          <p className="mt-2 text-sm text-neutral-700">音声ピークと動きピークの整合を検証するPoCです。</p>
         </Link>
 
         <Link

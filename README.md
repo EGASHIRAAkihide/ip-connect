@@ -119,6 +119,32 @@ on inquiries for select
 to authenticated
 using (creator_id = auth.uid() OR company_id = auth.uid());
 
+⸻
+
+🧾 Lab Run PDF Reports (Playwright)
+
+This repo can generate a PDF report for admin-only AI Lab runs:
+
+- HTML: `/lab/runs/[id]/report`
+- PDF: `/lab/runs/[id]/report.pdf`
+
+This project generates PDFs via a separate Node script under `apps/pdf` to avoid bundling Playwright into Next.js.
+
+Build/install once:
+
+- `cd apps/pdf && pnpm install && pnpm build`
+- Install Playwright browsers (Chromium):
+  - macOS: `pnpm exec playwright install chromium`
+  - Linux (CI/containers): `pnpm exec playwright install --with-deps chromium`
+
+Then you can open:
+- HTML: `/lab/runs/[id]/report`
+- PDF: `/lab/runs/[id]/report.pdf`
+
+Notes:
+- The PDF route spawns `apps/pdf/dist/generate.js` (Playwright runs outside the Next.js bundle).
+- Reports always include a disclaimer and are for review/reference only.
+
 
 ⸻
 
