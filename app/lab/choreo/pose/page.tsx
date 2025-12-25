@@ -8,7 +8,7 @@ export default async function ChoreoPosePage() {
     <section className="mx-auto max-w-3xl space-y-6 py-8">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Choreo Pose</p>
-        <h1 className="text-3xl font-semibold text-neutral-900">骨格推定 (MediaPipe Pose)</h1>
+        <h1 className="text-3xl font-semibold text-neutral-900">骨格推定 (Pose Backend)</h1>
         <p className="text-sm text-neutral-700">
           mp4 / mov をアップロードして、最大30秒・サンプリングFPS指定で33ランドマークを抽出します。
         </p>
@@ -30,6 +30,19 @@ export default async function ChoreoPosePage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
+              backend
+              <select
+                className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
+                name="backend"
+                defaultValue="mediapipe"
+              >
+                <option value="mediapipe">MediaPipe</option>
+                <option value="mmpose">MMPose</option>
+                <option value="openpose">OpenPose</option>
+              </select>
+              <span className="mt-1 text-[11px] text-neutral-500">backend を選択して比較します</span>
+            </label>
+            <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
               sample_fps
               <input
                 className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
@@ -37,9 +50,9 @@ export default async function ChoreoPosePage() {
                 type="number"
                 min={1}
                 step={1}
-                defaultValue={10}
+                defaultValue={15}
               />
-              <span className="mt-1 text-[11px] text-neutral-500">動画FPSを間引くサンプリングレート（デフォルト10）</span>
+              <span className="mt-1 text-[11px] text-neutral-500">動画FPSを間引くサンプリングレート（デフォルト15）</span>
             </label>
             <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
               max_seconds

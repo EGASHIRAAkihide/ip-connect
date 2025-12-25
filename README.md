@@ -163,6 +163,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxxx
 
 3. Run the dev server
 
+Create `.env.lab` (ignored by git) and set:
+
+cp .env.lab.example .env.lab
+# Fill HF_TOKEN
+docker compose -f docker-compose.lab.yml up --build
 pnpm dev
 
 Access:
@@ -219,3 +224,5 @@ MIT License (or preferred license)
 
 IP Connect Team
 (Founder: @gashi_japan)
+
+本リポジトリでの実装作業は docs/CODEX_RULES.md を前提とする

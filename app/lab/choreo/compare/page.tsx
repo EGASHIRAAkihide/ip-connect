@@ -8,9 +8,9 @@ export default async function ChoreoComparePage() {
     <section className="mx-auto max-w-3xl space-y-6 py-8">
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Choreo Compare</p>
-        <h1 className="text-3xl font-semibold text-neutral-900">振付類似度（A/B）</h1>
+        <h1 className="text-3xl font-semibold text-neutral-900">振付比較（DTW）</h1>
         <p className="text-sm text-neutral-700">
-          mp4 / mov の2動画をアップロードし、骨格ランドマークを正規化してコサイン類似度を計算します。PoC用途の参考値です。
+          mp4 / mov の2動画をアップロードし、骨格ランドマークをDTWで比較します。PoC用途の参考値です。
         </p>
       </header>
 
@@ -41,7 +41,20 @@ export default async function ChoreoComparePage() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
+              backend
+              <select
+                className="mt-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900"
+                name="backend"
+                defaultValue="mediapipe"
+              >
+                <option value="mediapipe">mediapipe</option>
+                <option value="mmpose">mmpose</option>
+                <option value="openpose">openpose</option>
+              </select>
+              <span className="mt-1 text-[11px] text-neutral-500">実行に使うPose backend</span>
+            </label>
             <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
               sample_fps
               <input
@@ -50,9 +63,9 @@ export default async function ChoreoComparePage() {
                 type="number"
                 min={1}
                 step={1}
-                defaultValue={10}
+                defaultValue={15}
               />
-              <span className="mt-1 text-[11px] text-neutral-500">フレーム間引き用のFPS（デフォルト10）</span>
+              <span className="mt-1 text-[11px] text-neutral-500">フレーム間引き用のFPS（デフォルト15）</span>
             </label>
             <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-600">
               max_seconds
@@ -76,7 +89,7 @@ export default async function ChoreoComparePage() {
             type="submit"
             className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
           >
-            類似度を計算
+            DTW比較を実行
           </button>
         </form>
       </div>

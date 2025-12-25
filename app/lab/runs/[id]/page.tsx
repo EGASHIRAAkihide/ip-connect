@@ -216,38 +216,64 @@ export default async function LabRunDetailPage({ params }: { params: Promise<{ i
               </div>
               <p className="text-xs text-amber-700">骨格ランドマークに基づく参考値です。用途に応じて必ず人手で確認してください。</p>
             </div>
-          ) : run.type === "choreo_compare_dtw" && run.output_json?.similarity !== undefined ? (
-            <div className="space-y-2 text-sm">
-              <p className="font-semibold text-neutral-900">DTW振付類似度（cosineベース）</p>
-              <p className="text-lg font-semibold text-neutral-900">
-                {(run.output_json as { similarity: number }).similarity.toFixed(4)}
-                {typeof (run.output_json as any).meta?.confidence === "number" && (
-                  <span
-                    className={`ml-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                      (run.output_json as any).meta?.label === "High"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : (run.output_json as any).meta?.label === "Medium"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-rose-50 text-rose-700 border-rose-200"
-                    }`}
-                  >
-                    Confidence: {(run.output_json as any).meta?.label} ({Number((run.output_json as any).meta?.confidence ?? 0).toFixed(2)})
-                  </span>
-                )}
-              </p>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">dtw_cost</p>
-                  <p className="text-sm text-neutral-900">{String((run.output_json as any).dtw_cost ?? ((run.output_json as any).meta?.dtw_cost ?? ""))}</p>
-                </div>
-                {Object.entries(((run.output_json as any).meta ?? {})).map(([k, v]) => (
-                  <div key={k} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{k}</p>
-                    <p className="text-sm text-neutral-900">{String(v)}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-amber-700">骨格ランドマークに基づく参考値です。用途に応じて必ず人手で確認してください。</p>
+          ) : run.type === "choreo_compare_dtw" && run.output_json ? (
+            <div className="space-y-3 text-sm">
+              {(() => {
+                const payload = run.output_json as any;
+                const out = payload?.output ?? payload;
+                const meta = out?.meta ?? {};
+                const similarity = typeof out?.similarity === "number" ? out.similarity : null;
+                const dtwCost = out?.dtw_cost ?? meta?.dtw_cost ?? null;
+                const warnings = Array.isArray(meta?.warnings) ? meta.warnings : [];
+                const phrases = Array.isArray(out?.phrases) ? out.phrases : [];
+                const metaEntries = Object.entries(meta).filter(([key]) => key !== "warnings");
+                return (
+                  <>
+                    <p className="font-semibold text-neutral-900">DTW振付類似度</p>
+                    <p className="text-lg font-semibold text-neutral-900">
+                      {similarity !== null ? similarity.toFixed(4) : "—"}
+                      {typeof meta?.confidence === "number" && (
+                        <span
+                          className={`ml-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                            meta?.label === "High"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : meta?.label === "Medium"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-rose-50 text-rose-700 border-rose-200"
+                          }`}
+                        >
+                          Confidence: {meta?.label} ({Number(meta?.confidence ?? 0).toFixed(2)})
+                        </span>
+                      )}
+                    </p>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">dtw_cost</p>
+                        <p className="text-sm text-neutral-900">{dtwCost ?? "—"}</p>
+                      </div>
+                      {warnings.length > 0 && (
+                        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">warnings</p>
+                          <p className="text-sm text-neutral-900">{warnings.join(", ")}</p>
+                        </div>
+                      )}
+                      {metaEntries.map(([k, v]) => (
+                        <div key={k} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{k}</p>
+                          <p className="text-sm text-neutral-900">{String(v)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <ChoreoPhraseReview
+                      videoA={videoAUrl}
+                      videoB={videoBUrl}
+                      phrases={phrases}
+                      signError={signError}
+                    />
+                    <p className="text-xs text-amber-700">骨格ランドマークに基づく参考値です。用途に応じて必ず人手で確認してください。</p>
+                  </>
+                );
+              })()}
             </div>
           ) : run.type === "choreo_segment" && run.output_json ? (
             <div className="space-y-2 text-sm">
@@ -399,47 +425,73 @@ export default async function LabRunDetailPage({ params }: { params: Promise<{ i
           ) : run.type === "choreo_pose_extract" && run.output_json ? (
             <div className="space-y-3 text-sm">
               <p className="font-semibold text-neutral-900">骨格推定結果</p>
-              <div className="grid gap-3 md:grid-cols-2">
-                {Object.entries(((run.output_json as any).meta ?? {})).map(([k, v]) => (
-                  <div key={k} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{k}</p>
-                    <p className="text-sm text-neutral-900">{String(v)}</p>
-                  </div>
-                ))}
-              </div>
-              {((run.output_json as any).summary || (run.output_json as any).features) && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {(run.output_json as any).summary && (
-                    <div className="space-y-1 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">summary</p>
-                      <pre className="overflow-auto text-xs text-neutral-900">
-                        {JSON.stringify((run.output_json as any).summary, null, 2)}
-                      </pre>
+              {(() => {
+                const payload = run.output_json as any;
+                const out = payload?.output ?? payload;
+                const meta = out?.meta ?? {};
+                const frames = out?.frames ?? out?.pose_frames ?? [];
+                const summary = out?.summary;
+                const features = out?.features;
+                return (
+                  <>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">backend</p>
+                        <p className="text-sm text-neutral-900">
+                          {String(meta?.backend ?? "—")}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">frames</p>
+                        <p className="text-sm text-neutral-900">
+                          {Array.isArray(frames) ? frames.length : meta?.frames ?? "—"}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  {(run.output_json as any).features && (
-                    <div className="space-y-1 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">features</p>
-                      <pre className="overflow-auto text-xs text-neutral-900">
-                        {JSON.stringify((run.output_json as any).features, null, 2)}
-                      </pre>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {Object.entries(meta).map(([k, v]) => (
+                        <div key={k} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{k}</p>
+                          <p className="text-sm text-neutral-900">{String(v)}</p>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
-              <details className="rounded-lg border border-neutral-200 bg-neutral-50">
-                <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-neutral-900">
-                  pose_frames (先頭のみ表示)
-                </summary>
-                <div className="space-y-2 px-3 pb-3">
-                  <p className="text-xs text-neutral-600">
-                    pose_frames は最大50件まで保存しています。time は秒、33ランドマークの x/y/z/v を含みます。
-                  </p>
-                  <pre className="overflow-auto rounded bg-neutral-900 p-3 text-xs text-neutral-50">
-                    {JSON.stringify((run.output_json as any).pose_frames, null, 2)}
-                  </pre>
-                </div>
-              </details>
+                    {(summary || features) && (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {summary && (
+                          <div className="space-y-1 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">summary</p>
+                            <pre className="overflow-auto text-xs text-neutral-900">
+                              {JSON.stringify(summary, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        {features && (
+                          <div className="space-y-1 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">features</p>
+                            <pre className="overflow-auto text-xs text-neutral-900">
+                              {JSON.stringify(features, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <details className="rounded-lg border border-neutral-200 bg-neutral-50">
+                      <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-neutral-900">
+                        pose_frames / frames (先頭のみ表示)
+                      </summary>
+                      <div className="space-y-2 px-3 pb-3">
+                        <p className="text-xs text-neutral-600">
+                          frames は最大50件まで保存しています。time は秒、33ランドマークの x/y/score を含みます。
+                        </p>
+                        <pre className="overflow-auto rounded bg-neutral-900 p-3 text-xs text-neutral-50">
+                          {JSON.stringify(frames, null, 2)}
+                        </pre>
+                      </div>
+                    </details>
+                  </>
+                );
+              })()}
             </div>
           ) : run.output_json ? (
             <pre className="overflow-auto rounded-lg bg-neutral-900 p-4 text-xs text-neutral-50">

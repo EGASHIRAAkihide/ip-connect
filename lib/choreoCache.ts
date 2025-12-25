@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { buildVectorsFromFrames } from "@/lib/choreo/features";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
 const POSE_CACHE_BUCKET = "lab-outputs";
@@ -36,7 +37,31 @@ export async function ensurePoseCache(
         ? await blob.text()
         : Buffer.from(await blob.arrayBuffer()).toString("utf-8");
     const cachedJson = JSON.parse(cachedText);
-    if (cachedJson?.vectors) {
+    const cachedVectors = Array.isArray(cachedJson?.vectors)
+      ? cachedJson.vectors
+      : buildVectorsFromFrames(
+          (cachedJson?.frames ?? cachedJson?.pose_frames ?? []) as any[],
+        );
+    if (cachedVectors.length > 0) {
+      const normalizedJson =
+        cachedVectors === cachedJson?.vectors
+          ? cachedJson
+          : {
+              ...cachedJson,
+              vectors: cachedVectors,
+              meta: {
+                ...(cachedJson?.meta ?? {}),
+                vectors_generated: true,
+              },
+            };
+      if (normalizedJson !== cachedJson) {
+        await supabase.storage
+          .from(POSE_CACHE_BUCKET)
+          .upload(posePath, Buffer.from(JSON.stringify(normalizedJson)), {
+            contentType: "application/json",
+            upsert: true,
+          });
+      }
       const { data: signed, error: signErr } = await supabase.storage
         .from(POSE_CACHE_BUCKET)
         .createSignedUrl(posePath, 60 * 60);
@@ -48,7 +73,7 @@ export async function ensurePoseCache(
         poseRef,
         cacheHit: true,
         signedUrl: signed.signedUrl,
-        data: cachedJson,
+        data: normalizedJson,
       };
     }
   }
@@ -74,13 +99,28 @@ export async function ensurePoseCache(
   }
 
   const json = await response.json();
-  if (!json?.vectors) {
+  const frames = (json?.frames ?? json?.pose_frames ?? []) as any[];
+  const vectors = Array.isArray(json?.vectors) ? json.vectors : buildVectorsFromFrames(frames);
+  console.log("[ensurePoseCache]", {
+    keys: Object.keys(json ?? {}),
+    frames: frames.length,
+    vectors: vectors.length,
+  });
+  if (vectors.length === 0) {
     throw new Error("pose response missing vectors");
   }
+  const normalizedJson = {
+    ...json,
+    vectors,
+    meta: {
+      ...(json?.meta ?? {}),
+      vectors_generated: !Array.isArray(json?.vectors),
+    },
+  };
 
   await supabase.storage
     .from(POSE_CACHE_BUCKET)
-    .upload(posePath, Buffer.from(JSON.stringify(json)), {
+    .upload(posePath, Buffer.from(JSON.stringify(normalizedJson)), {
       contentType: "application/json",
       upsert: true,
     });
@@ -97,6 +137,6 @@ export async function ensurePoseCache(
     poseRef,
     cacheHit: false,
     signedUrl: signed.signedUrl,
-    data: json,
+    data: normalizedJson,
   };
 }

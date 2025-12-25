@@ -6,30 +6,31 @@ import type { UserProfile } from "@/lib/types";
 type NavLink = { href: string; label: string };
 
 function buildNavLinks(role: UserProfile["role"] | null): NavLink[] {
-  const base: NavLink[] = [
-    { href: "/", label: "ホーム" },
-    { href: "/ip", label: "IP一覧" },
-  ];
+  const base: NavLink[] = [{ href: "/", label: "ホーム" }];
+  const publicLinks: NavLink[] = [...base, { href: "/ip", label: "IP一覧" }];
+  const legacyLink: NavLink = { href: "/legacy", label: "Legacy" };
 
   if (role === "creator") {
     return [
-      ...base,
+      ...publicLinks,
       { href: "/creator/dashboard", label: "クリエイターダッシュボード" },
       { href: "/creator/ip/new", label: "IP登録" },
       { href: "/creator/inquiries", label: "問い合わせ受信箱" },
       { href: "/analytics", label: "分析" },
+      legacyLink,
     ];
   }
 
   if (role === "company") {
     return [
       ...base,
-      { href: "/company/inquiries", label: "自社の問い合わせ" },
-      { href: "/analytics", label: "分析" },
+      { href: "/poc", label: "PoC" },
+      { href: "/company/choreo-checks", label: "振付チェック" },
+      legacyLink,
     ];
   }
 
-  return base;
+  return publicLinks;
 }
 
 type NavClientProps = {

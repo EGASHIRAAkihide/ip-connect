@@ -1,40 +1,51 @@
 // app/components/MainNav.tsx
 import Link from "next/link";
 import { getServerUserWithRole } from "@/lib/auth";
+import { logoutAction } from "@/app/auth/logout/actions";
 
 type NavLink = { href: string; label: string };
+type NavGroups = { primary: NavLink[]; secondary: NavLink[] };
 
-function buildNavLinks(role: string | null): NavLink[] {
-  const base: NavLink[] = [
-    { href: "/", label: "ホーム" },
-    { href: "/ip", label: "IP一覧" },
-  ];
+function buildNavLinks(role: string | null): NavGroups {
+  const base: NavLink[] = [{ href: "/", label: "ホーム" }];
+  const publicLinks: NavLink[] = [...base, { href: "/ip", label: "IP一覧" }];
+  const legacyLink: NavLink = { href: "/legacy", label: "Legacy" };
 
   if (role === "creator") {
-    return [
-      ...base,
-      { href: "/creator/dashboard", label: "クリエイター" },
-      { href: "/creator/ip/new", label: "IP登録" },
-      { href: "/creator/inquiries", label: "問い合わせ受信箱" },
-      { href: "/analytics", label: "分析" },
-    ];
+    return {
+      primary: [
+        ...publicLinks,
+        { href: "/creator/dashboard", label: "クリエイター" },
+        { href: "/creator/inquiries", label: "問い合わせ受信箱" },
+      ],
+      secondary: [
+        { href: "/creator/ip/new", label: "IP登録" },
+        { href: "/analytics", label: "分析" },
+        legacyLink,
+      ],
+    };
   }
 
   if (role === "company") {
-    return [
-      ...base,
-      { href: "/company/inquiries", label: "自社の問い合わせ" },
-      { href: "/analytics", label: "分析" },
-    ];
+    return {
+      primary: [
+        ...base,
+        { href: "/poc", label: "PoC" },
+        { href: "/company/choreo-checks", label: "振付チェック" },
+        legacyLink,
+      ],
+      secondary: [],
+    };
   }
 
-  return base;
+  return { primary: publicLinks, secondary: [] };
 }
 
 export default async function MainNav() {
   const { user, role, isAdmin } = await getServerUserWithRole();
   const enableLab = process.env.ENABLE_LAB === "true";
-  const navLinks = buildNavLinks(role);
+  const { primary: primaryLinks, secondary: secondaryLinks } = buildNavLinks(role);
+  const navLinks = [...primaryLinks, ...secondaryLinks];
   const profileHref = user ? `/users/${user.id}` : null;
   const roleLabel =
     role === "creator" ? "クリエイター" : role === "company" ? "企業" : "未ログイン";
@@ -60,8 +71,8 @@ export default async function MainNav() {
           </span>
         </div>
 
-        <div className="flex flex-1 flex-wrap items-center justify-center gap-2 md:gap-3">
-          {navLinks.map((link) => (
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-2 md:flex md:gap-3">
+          {primaryLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -70,15 +81,33 @@ export default async function MainNav() {
               {link.label}
             </Link>
           ))}
+          {secondaryLinks.length > 0 && (
+            <details className="relative">
+              <summary className="list-none cursor-pointer select-none rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-900 hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20">
+                メニュー
+              </summary>
+              <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
+                {secondaryLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-3 py-2 text-sm text-neutral-800 hover:bg-neutral-50"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {adminLinks.length > 0 && (
             <details className="relative hidden md:block">
-              <summary className="list-none cursor-pointer rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-900 hover:bg-neutral-100">
+              <summary className="list-none cursor-pointer select-none rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-900 hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20">
                 Admin
               </summary>
-              <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
+              <div className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
                 {adminLinks.map((link) => (
                   <Link
                     key={link.href}
@@ -118,6 +147,14 @@ export default async function MainNav() {
                 >
                   マイページ
                 </Link>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-neutral-300 px-3 py-1 text-xs text-neutral-800 hover:border-neutral-900"
+                  >
+                    ログアウト
+                  </button>
+                </form>
               </div>
             )
           )}
@@ -152,12 +189,22 @@ export default async function MainNav() {
             </>
           ) : (
             profileHref && (
-              <Link
-                href={profileHref}
-                className="underline underline-offset-3"
-              >
-                マイページ
-              </Link>
+              <>
+                <Link
+                  href={profileHref}
+                  className="underline underline-offset-3"
+                >
+                  マイページ
+                </Link>
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="underline underline-offset-3"
+                  >
+                    ログアウト
+                  </button>
+                </form>
+              </>
             )
           )}
           {adminLinks.length > 0 &&

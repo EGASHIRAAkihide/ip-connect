@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import React, { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { loginAction } from "../actions";
 
@@ -20,7 +21,7 @@ function SubmitButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, initialState);
+  const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
     <section className="mx-auto mt-10 max-w-lg rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">

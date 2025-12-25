@@ -8,6 +8,41 @@ services:
     # volumes は任意：ホットリロードしたいなら残す
     volumes:
       - ./apps/ai:/app
+    env_file:
+      - .env.lab
     environment:
       - HF_TOKEN=${HF_TOKEN}
+      - POSE_BACKENDS=mediapipe
+    restart: unless-stopped
+
+  ai-lab-mmpose:
+    profiles: ["mmpose"]
+    build:
+      context: ./apps/ai
+      dockerfile: Dockerfile.mmpose
+    ports:
+      - "8002:8001"
+    volumes:
+      - ./apps/ai:/app
+    env_file:
+      - .env.lab
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - POSE_BACKENDS=mediapipe,mmpose
+    restart: unless-stopped
+
+  ai-lab-openpose:
+    profiles: ["openpose"]
+    build:
+      context: ./apps/ai
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8001"
+    volumes:
+      - ./apps/ai:/app
+    env_file:
+      - .env.lab
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - POSE_BACKENDS=mediapipe,openpose
     restart: unless-stopped

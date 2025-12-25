@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 
 export async function getServerUser() {
@@ -30,4 +31,18 @@ export async function getServerUserWithRole() {
   }
 
   return { user, role: data?.role ?? null, isAdmin: Boolean(data?.is_admin) };
+}
+
+export async function requireCompany() {
+  const { user, role } = await getServerUserWithRole();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  if (role !== "company") {
+    redirect("/ip");
+  }
+
+  return { user, role };
 }

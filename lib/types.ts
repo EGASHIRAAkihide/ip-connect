@@ -131,9 +131,34 @@ export type LabRun = {
   status: LabRunStatus;
   input_bucket: string;
   input_path: string;
+  input_json?: Record<string, unknown> | null;
   output_json: Record<string, unknown> | null;
   duration_ms: number | null;
   error_message: string | null;
   created_by: string;
   created_at: string;
+};
+
+export type ChoreoPoseExtractLandmark = {
+  name: string;
+  x: number;
+  y: number;
+  score: number;
+};
+
+export type ChoreoPoseExtractFrame = {
+  t: number;
+  landmarks: ChoreoPoseExtractLandmark[];
+};
+
+export type ChoreoPoseExtractResult = {
+  meta: {
+    backend: string;
+    sample_fps: number;
+    max_seconds: number;
+    frames: number;
+    pose_success_rate: number;
+    warnings: string[];
+  };
+  frames: ChoreoPoseExtractFrame[];
 };

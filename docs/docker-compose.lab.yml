@@ -1,0 +1,13 @@
+services:
+  ai-lab:
+    build:
+      context: ./apps/ai
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    # volumes は任意：ホットリロードしたいなら残す
+    volumes:
+      - ./apps/ai:/app
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    restart: unless-stopped
