@@ -132,13 +132,13 @@ export async function runChoreoCheck(id: string) {
     const aiForm = new FormData();
     aiForm.append(
       "file",
-      new File([buffer], filename, {
+      new File([new Uint8Array(buffer)], filename, {
         type: "video/mp4",
       }),
     );
     aiForm.append(
       "reference",
-      new File([referenceBuffer], referenceFilename, {
+      new File([new Uint8Array(referenceBuffer)], referenceFilename, {
         type: "video/mp4",
       }),
     );

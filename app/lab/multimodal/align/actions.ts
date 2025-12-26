@@ -55,7 +55,7 @@ export async function runMultimodalAlign(formData: FormData) {
 
   try {
     const aiForm = new FormData();
-    aiForm.append("file", new File([buffer], file.name, { type: file.type || "video/mp4" }));
+    aiForm.append("file", new File([new Uint8Array(buffer)], file.name, { type: file.type || "video/mp4" }));
     aiForm.append("max_seconds", maxSeconds.toString());
 
     const response = await fetch(`${AI_SERVICE_URL}/multimodal/align`, { method: "POST", body: aiForm });
@@ -90,4 +90,3 @@ export async function runMultimodalAlign(formData: FormData) {
   revalidatePath(`/lab/runs/${runId}`);
   redirect(`/lab/runs/${runId}`);
 }
-

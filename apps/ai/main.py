@@ -1170,6 +1170,8 @@ async def choreo_pose(
     return {
         "meta": result["meta"],
         "frames": result["frames"],
+        # Return vectors here to keep pose cache + downstream compute stable without a separate /pose/extract call.
+        "vectors": result.get("vectors") or [],
         "success_rate": result["meta"]["pose_success_rate"],
     }
 

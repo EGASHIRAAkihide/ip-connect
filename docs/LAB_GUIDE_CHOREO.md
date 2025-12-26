@@ -23,3 +23,10 @@ docker compose -f docker-compose.lab.yml up --build
 - Visit `/lab/choreo/pose`
 - Choose backend and run
 - Check `lab_runs` and `/lab/runs/[id]` output
+
+## P0検証手順
+
+- `/lab/choreo/pose` を実行し、`/lab/runs/:id` で frames と vectors が表示されること
+- `/lab/choreo/compare` を実行し、similarity が表示されること
+- `/lab/choreo/compare-dtw` を実行し、vectors missing が再発しないこと
+- `/lab/runs/:id/report` が壊れず表示されること

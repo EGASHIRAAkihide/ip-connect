@@ -99,11 +99,11 @@ export async function runChoreoPhraseCompare(formData: FormData) {
 
     const json = await response.json();
     const enriched = {
-      ...json,
-      inputs: {
+      input: {
         a: { bucket: "lab-inputs", path: uploadA.path, pose_ref: poseA.poseRef, cache: poseA.cacheHit ? "hit" : "miss", hash: poseA.hash },
         b: { bucket: "lab-inputs", path: uploadB.path, pose_ref: poseB.poseRef, cache: poseB.cacheHit ? "hit" : "miss", hash: poseB.hash },
       },
+      output: json,
     };
     const durationMs = Date.now() - startedAt;
 

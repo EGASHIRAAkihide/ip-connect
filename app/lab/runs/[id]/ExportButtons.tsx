@@ -29,7 +29,9 @@ function toCsv(segments: any[]) {
 export function ExportButtons({ data }: Props) {
   const [copied, setCopied] = useState(false);
   const json = data ?? {};
-  const segments = Array.isArray((json as any).segments) ? (json as any).segments : null;
+  const payload = json as any;
+  const output = payload.output ?? payload ?? {};
+  const segments = Array.isArray(output?.segments) ? output.segments : null;
 
   function downloadBlob(text: string, filename: string, type: string) {
     const blob = new Blob([text], { type });
@@ -44,7 +46,7 @@ export function ExportButtons({ data }: Props) {
   }
 
   const handleJson = () => {
-    downloadBlob(JSON.stringify(json, null, 2), "output.json", "application/json");
+    downloadBlob(JSON.stringify(payload, null, 2), "output.json", "application/json");
   };
 
   const handleCsv = () => {

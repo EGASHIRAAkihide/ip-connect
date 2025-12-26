@@ -3,6 +3,7 @@ import { buildVectorsFromFrames } from "@/lib/choreo/features";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
 const POSE_CACHE_BUCKET = "lab-outputs";
+const POSE_CACHE_VERSION = "v1";
 
 type PoseCacheResult = {
   hash: string;
@@ -26,7 +27,7 @@ export async function ensurePoseCache(
   const buffer = Buffer.from(await file.arrayBuffer());
   const hash = createHash("sha256").update(buffer).digest("hex");
   const suffix = variant ? `_${variant}` : "";
-  const posePath = `choreo/pose/${hash}${suffix}.json`;
+  const posePath = `choreo/pose/${POSE_CACHE_VERSION}/${hash}${suffix}.json`;
   const poseRef = { bucket: POSE_CACHE_BUCKET, path: posePath };
 
   const download = await supabase.storage.from(POSE_CACHE_BUCKET).download(posePath);
@@ -81,7 +82,7 @@ export async function ensurePoseCache(
   const aiForm = new FormData();
   aiForm.append(
     "file",
-    new File([buffer], file.name, {
+    new File([new Uint8Array(buffer)], file.name, {
       type: file.type || "video/mp4",
     }),
   );

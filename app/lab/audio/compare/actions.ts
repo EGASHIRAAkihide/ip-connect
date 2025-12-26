@@ -74,11 +74,11 @@ export async function runCompare(formData: FormData) {
     const aiForm = new FormData();
     aiForm.append(
       "fileA",
-      new File([Buffer.from(await fileA.arrayBuffer())], fileA.name, { type: fileA.type || "audio/mpeg" }),
+      new File([new Uint8Array(await fileA.arrayBuffer())], fileA.name, { type: fileA.type || "audio/mpeg" }),
     );
     aiForm.append(
       "fileB",
-      new File([Buffer.from(await fileB.arrayBuffer())], fileB.name, { type: fileB.type || "audio/mpeg" }),
+      new File([new Uint8Array(await fileB.arrayBuffer())], fileB.name, { type: fileB.type || "audio/mpeg" }),
     );
 
     const response = await fetch(`${AI_SERVICE_URL}/compare`, {

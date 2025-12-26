@@ -36,8 +36,8 @@ function SummarySection({ run }: { run: LabRun }) {
   );
 }
 
-function InputsSection({ output }: { output: any }) {
-  const inputs = output?.inputs ?? {};
+function InputsSection({ input }: { input: any }) {
+  const inputs = input ?? {};
   const items: { label: string; value: string }[] = [];
   if (inputs?.a?.path) items.push({ label: "Input A", value: `${inputs.a.bucket ?? "lab-inputs"}/${inputs.a.path}` });
   if (inputs?.b?.path) items.push({ label: "Input B", value: `${inputs.b.bucket ?? "lab-inputs"}/${inputs.b.path}` });
@@ -151,7 +151,9 @@ export default async function LabRunReportPage({ params }: { params: Promise<{ i
   const { data: run } = await supabase.from("lab_runs").select("*").eq("id", id).maybeSingle<LabRun>();
   if (!run) return notFound();
 
-  const output = (run.output_json as any) ?? {};
+  const payload = (run.output_json as any) ?? {};
+  const input = payload.input ?? payload.inputs ?? null;
+  const output = payload.output ?? payload ?? {};
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 bg-white px-6 py-8 text-neutral-900">
@@ -175,7 +177,7 @@ export default async function LabRunReportPage({ params }: { params: Promise<{ i
       </section>
 
       <SummarySection run={run} />
-      <InputsSection output={output} />
+      <InputsSection input={input} />
 
       {run.type === "choreo_compare_dtw" && (
         <div data-report-results>

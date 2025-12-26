@@ -68,7 +68,7 @@ export async function runAsr(formData: FormData) {
     const aiForm = new FormData();
     aiForm.append(
       "file",
-      new File([fileBuffer], file.name, {
+      new File([new Uint8Array(fileBuffer)], file.name, {
         type: file.type || "audio/mpeg",
       }),
     );

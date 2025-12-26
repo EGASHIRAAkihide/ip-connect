@@ -12,6 +12,7 @@ const allowedVideoExt = ["mp4", "mov", "m4v"];
 const POSE_CACHE_BUCKET = "lab-outputs";
 const INPUT_BUCKET = "choreo-inputs";
 const allowedBackends = new Set(["mediapipe", "mmpose", "openpose"]);
+const POSE_CACHE_VERSION = "v1";
 
 function sanitizeFileName(name: string) {
   return name.replace(/[^\w.\-]/g, "_");
@@ -48,7 +49,7 @@ export async function runChoreoPose(formData: FormData) {
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   const inputHash = createHash("sha256").update(fileBuffer).digest("hex");
-  const posePath = `choreo/pose/${inputHash}_${poseBackend}_fps${sampleFps}_s${maxSeconds}.json`;
+  const posePath = `choreo/pose/${POSE_CACHE_VERSION}/${inputHash}_${poseBackend}_fps${sampleFps}_s${maxSeconds}.json`;
   const safeName = sanitizeFileName(file.name);
   const storagePath = `${user.id}/${Date.now()}-${randomUUID()}-${safeName}`;
 
@@ -135,7 +136,7 @@ export async function runChoreoPose(formData: FormData) {
     const aiForm = new FormData();
     aiForm.append(
       "file",
-      new File([fileBuffer], file.name, {
+      new File([new Uint8Array(fileBuffer)], file.name, {
         type: file.type || "video/mp4",
       }),
     );

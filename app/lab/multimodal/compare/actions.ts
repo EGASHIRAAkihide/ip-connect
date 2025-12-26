@@ -67,8 +67,8 @@ export async function runMultimodalCompare(formData: FormData) {
 
   try {
     const aiForm = new FormData();
-    aiForm.append("fileA", new File([uploadA.buffer], fileA.name, { type: fileA.type || "video/mp4" }));
-    aiForm.append("fileB", new File([uploadB.buffer], fileB.name, { type: fileB.type || "video/mp4" }));
+    aiForm.append("fileA", new File([new Uint8Array(uploadA.buffer)], fileA.name, { type: fileA.type || "video/mp4" }));
+    aiForm.append("fileB", new File([new Uint8Array(uploadB.buffer)], fileB.name, { type: fileB.type || "video/mp4" }));
     aiForm.append("max_seconds", maxSeconds.toString());
 
     const response = await fetch(`${AI_SERVICE_URL}/multimodal/compare`, { method: "POST", body: aiForm });

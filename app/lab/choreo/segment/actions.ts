@@ -86,10 +86,10 @@ export async function runChoreoSegment(formData: FormData) {
     const json = await response.json();
     const durationMs = Date.now() - startedAt;
     const enriched = {
-      ...json,
-      inputs: {
+      input: {
         a: { hash: pose.hash, pose_ref: pose.poseRef, cache: pose.cacheHit ? "hit" : "miss" },
       },
+      output: json,
     };
 
     const { error: updateError } = await supabase

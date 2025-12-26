@@ -25,7 +25,8 @@ export async function createIpDraftFromRun(runId: string) {
     throw new Error(runError?.message ?? "lab_run が見つかりません。");
   }
 
-  const output = (run.output_json as any) ?? {};
+  const payload = (run.output_json as any) ?? {};
+  const output = payload.output ?? payload ?? {};
   const transcript = (output.transcript as string) ?? "";
   const meta = output.meta ?? {};
   const segments = Array.isArray(output.segments) ? output.segments : [];

@@ -126,7 +126,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
     const aiForm = new FormData();
     aiForm.append(
       "fileA",
-      new File([fileABytes], fileA.name, {
+      new File([new Uint8Array(fileABytes)], fileA.name, {
         type: fileA.type || "video/mp4",
       }),
     );
@@ -134,7 +134,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
       const refBytes = new Uint8Array(referenceBuffer);
       aiForm.append(
         "fileB",
-        new File([refBytes], refName, {
+        new File([new Uint8Array(refBytes)], refName, {
           type: "video/mp4",
         }),
       );
@@ -142,7 +142,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
       const fileBBytes = new Uint8Array(uploadB.buffer);
       aiForm.append(
         "fileB",
-        new File([fileBBytes], fileB.name, {
+        new File([new Uint8Array(fileBBytes)], fileB.name, {
           type: fileB.type || "video/mp4",
         }),
       );
@@ -169,7 +169,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
 
     const json = await response.json();
     const durationMs = Date.now() - startedAt;
-    const inputsPayload = {
+    const inputPayload = {
       a: {
         bucket: "lab-inputs",
         path: uploadA.path,
@@ -194,7 +194,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
       },
     };
     const enriched = {
-      inputs: inputsPayload,
+      input: inputPayload,
       output,
     };
 
@@ -213,7 +213,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
     }
   } catch (error) {
     const durationMs = Date.now() - startedAt;
-    const inputsPayload = {
+    const inputPayload = {
       a: {
         bucket: "lab-inputs",
         path: uploadA.path,
@@ -235,7 +235,7 @@ export async function runChoreoCompareDtw(formData: FormData) {
       .update({
         status: "failed",
         output_json: {
-          inputs: inputsPayload,
+          input: inputPayload,
           error: error instanceof Error ? error.message : "unknown error",
         },
         error_message: error instanceof Error ? error.message : "unknown error",
